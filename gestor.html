@@ -277,7 +277,7 @@ th{background:#f6f8fa}
     <button id="gestorAtualizarUrna" class="btn btn-light" type="button">Atualizar situação</button> <button id="gestorCancelarUrna" class="btn btn-danger" type="button" disabled>Cancelar liberação interrompida</button>
   </section>
   <section id="ambienteEleitores" class="card ambiente-gestor hidden">
-    <div class="ambiente-topo"><h2>Cadastro de eleitores</h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
+    <div class="ambiente-topo"><h2>Cadastro de eleitores <span style="font-size:12px;color:#176c39;font-weight:700">VERSÃO COM EDITAR · 27/10</span></h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
     <p class="muted">Somente RAs cadastrados aqui poderão entrar na urna. Cada RA poderá registrar no máximo um voto por cargo.</p>
 
     <div class="grid grid-3">
@@ -304,6 +304,20 @@ th{background:#f6f8fa}
       </div>
     </div>
     <div id="eleitoresList" style="margin-top:14px"></div>
+    <div id="edicaoEleitor" class="card hidden" style="margin-top:16px;border:2px solid #2e6ab3;background:#f1f7ff">
+      <h3>Editar dados do estudante</h3>
+      <p class="small muted">O RA é o identificador do eleitor e não pode ser alterado aqui. A edição preserva os cargos já votados e os votos registrados.</p>
+      <div class="grid grid-3">
+        <div><label>RA (somente leitura)</label><input id="editarEleitorRA" readonly></div>
+        <div><label>Nome completo</label><input id="editarEleitorNome" maxlength="180"></div>
+        <div><label>Turma</label><input id="editarEleitorTurma" maxlength="40"></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <button type="button" id="salvarEdicaoEleitor" class="btn btn-primary">Salvar alterações</button>
+        <button type="button" id="cancelarEdicaoEleitor" class="btn btn-light">Cancelar</button>
+      </div>
+      <div id="edicaoEleitorMsg" role="status" style="margin-top:10px"></div>
+    </div>
   </section>
   <a class="btn btn-light" href="index.html">← Voltar</a>
   </div>
@@ -786,13 +800,46 @@ th{background:#f6f8fa}
                <td><strong>${esc(v.nome||"")}</strong></td>
                <td>${esc(v.turma||"")}</td>
                <td>${Array.isArray(v.votedCargos) && v.votedCargos.length ? v.votedCargos.map(esc).join("<br>") : "<span class='muted'>Nenhum cargo ainda</span>"}</td>
-               <td><button class="btn btn-danger small" onclick="excluirEleitor('${String(v.ra||v.id||"").replaceAll("'","&#039;")}')">Excluir</button></td>
+               <td><button class="btn btn-light small" data-editar-ra="${esc(v.ra||v.id||"")}" type="button">Editar</button> <button class="btn btn-danger small" onclick="excluirEleitor('${String(v.ra||v.id||"").replaceAll("'","&#039;")}')">Excluir</button></td>
              </tr>`).join("")}
          </tbody>
        </table>
      </div>`;
  }
 
+ // Delegação de clique evita inserir RA em JavaScript executável.
+ document.getElementById("eleitoresList").addEventListener("click",event=>{
+   const botao=event.target.closest("button[data-editar-ra]");
+   if(!botao) return;
+   const ra=botao.getAttribute("data-editar-ra");
+   const eleitor=cacheEleitores.find(v=>String(v.ra||v.id||"")===ra);
+   if(!eleitor) return alert("Eleitor não encontrado. Atualize a lista.");
+   document.getElementById("editarEleitorRA").value=ra;
+   document.getElementById("editarEleitorNome").value=eleitor.nome||"";
+   document.getElementById("editarEleitorTurma").value=eleitor.turma||"";
+   document.getElementById("edicaoEleitorMsg").textContent="";
+   document.getElementById("edicaoEleitor").classList.remove("hidden");
+   document.getElementById("edicaoEleitor").scrollIntoView({behavior:"smooth",block:"nearest"});
+ });
+ document.getElementById("cancelarEdicaoEleitor").onclick=()=>document.getElementById("edicaoEleitor").classList.add("hidden");
+ document.getElementById("salvarEdicaoEleitor").onclick=async()=>{
+   const ra=document.getElementById("editarEleitorRA").value.trim();
+   const nome=document.getElementById("editarEleitorNome").value.trim();
+   const turma=document.getElementById("editarEleitorTurma").value.trim();
+   const msg=document.getElementById("edicaoEleitorMsg");
+   if(!ra || !nome || !turma){msg.textContent="Preencha nome e turma.";return;}
+   const botao=document.getElementById("salvarEdicaoEleitor");
+   botao.disabled=true;
+   try{
+     await S.updateVoter(ra,{nome,turma});
+     // Atualiza a linha localmente, sem recarregar toda a coleção do Firestore.
+     cacheEleitores=cacheEleitores.map(v=>String(v.ra||v.id||"")===ra?{...v,nome,turma}:v);
+     renderEleitores(cacheEleitores);
+     document.getElementById("edicaoEleitor").classList.add("hidden");
+     eleitorMsg("Dados do estudante atualizados com sucesso. Participação eleitoral preservada.",true);
+   }catch(err){console.error(err);msg.textContent="Erro ao salvar: "+(err.message||err);}
+   finally{botao.disabled=false;}
+ };
  document.getElementById("buscaEleitor").addEventListener("input",()=>renderEleitores(cacheEleitores));
 
  document.getElementById("addEleitor").onclick=async()=>{

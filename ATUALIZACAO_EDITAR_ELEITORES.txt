@@ -1,0 +1,9 @@
+VOTA ESCOLA 2 - Edição manual de eleitores
+
+Publicar todos os arquivos na mesma pasta do GitHub Pages, sem apagar coleções.
+No painel Gestor > Cadastro de eleitores, localizar o estudante e clicar Editar.
+Permite editar nome e turma; RA é imutável por ser o ID do documento.
+Não altera votedCargos, votos, candidaturas ou sessões de urna.
+Requer autenticação e regras que autorizem update em eleitores para o gestor.
+Não publica nem altera o Firebase automaticamente.
+Antes de substituir a versão em uso, testar em ambiente separado.

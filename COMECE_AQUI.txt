@@ -1,0 +1,11 @@
+VOTA ESCOLA 2 - RESTAURACAO DA PASTA
+
+Este pacote recupera todos os arquivos da ultima versao completa e incorpora a correcao mais recente do botao Editar (gestor.html e core.js).
+
+1. Extraia o ZIP.
+2. Envie os arquivos diretamente para a RAIZ do repositorio vota-escola-2 no GitHub.
+3. Confira se firebase-config.js aponta para vota-escola-2.
+4. Espere a publicacao e atualize o gestor com Ctrl+F5.
+5. Confira VERSAO COM EDITAR 27/10 na secao Cadastro de eleitores.
+
+ATENCAO: Os arquivos de importacao de candidatos estao incluidos para backup. NAO execute novamente a importacao se os 32 candidatos ja estao cadastrados. Publicar os arquivos nao apaga dados do Firestore. As regras firestore.rules sao referencia: nao publique sem revisao de seguranca.

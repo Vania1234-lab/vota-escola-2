@@ -112,6 +112,19 @@
       LS.set("ve_eleitores",arr);
       return voter;
     },
+    async updateVoter(ra, patch){
+      const id=String(ra||"").trim();
+      const nome=String(patch.nome||"").trim();
+      const turma=String(patch.turma||"").trim();
+      if(!id || !nome || !turma) throw new Error("RA, nome e turma são obrigatórios.");
+      const arr=LS.get("ve_eleitores",[]);
+      const i=arr.findIndex(x=>String(x.ra)===id);
+      if(i<0) throw new Error("Eleitor não encontrado.");
+      // Mantém votedCargos e demais informações eleitorais.
+      arr[i]={...arr[i],nome,turma,updatedAt:now()};
+      LS.set("ve_eleitores",arr);
+      return arr[i];
+    },
     async addVoters(list){
       for(const item of list) await this.addVoter(item);
     },
@@ -301,6 +314,15 @@
         ativo:data.ativo!==false,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp()
       },{merge:true});
+    },
+    async updateVoter(ra, patch){
+      const id=String(ra||"").trim();
+      const nome=String(patch.nome||"").trim();
+      const turma=String(patch.turma||"").trim();
+      if(!id || !nome || !turma) throw new Error("RA, nome e turma são obrigatórios.");
+      const ref=this.db.collection("eleitores").doc(id);
+      // update falha caso o RA não exista. Não cria outro eleitor e não toca nos votos.
+      await ref.update({nome,turma,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
     },
     async addVoters(list){
       const chunks=[];
