@@ -1,0 +1,33 @@
+﻿ordem_original;nome;turma;cargo;numero;status;foto_incluida
+1;CAIO DE FRANÇA LUQUE;8B;Diretor de Comunicação;89;aprovado;True
+2;MARIA CLARA GARCIA;7B;Diretor de Comunicação;84;aprovado;True
+3;MARIA EDUARDA RODRIGUES DA CONCEICAO;6B;Diretor de Comunicação;80;aprovado;True
+4;MARIA ISABELLY REGUERO ARAKAKI;6A;Diretor de Comunicação;91;aprovado;True
+5;ELOAH PEREIRA DE AZEVEDO;8A;Diretor de Cultura;76;aprovado;True
+6;LUCIANO SANTOS BISPO;7A;Diretor de Cultura;20;aprovado;True
+7;MARIA FERNANDA DE SOUZA MATOS BARBOSA;7B;Diretor de Cultura;04;aprovado;True
+8;ALICE DE MELO FREITAS;8B;Diretor de Esportes;112;rejeitado;True
+9;ALÍCIA DOS SANTOS;6A;Diretor de Esportes;73;aprovado;True
+10;DAVI LUCAS BEZERRA CARVALHO;6B;Diretor de Esportes;02;aprovado;True
+11;HEITOR LUCAS DE OLIVEIRA SILVA FILHO;7B;Diretor de Esportes;70;aprovado;True
+12;JOSÉ VINICIUS MENDES PAULA;8A;Diretor de Esportes;27;aprovado;True
+13;MANUELA DE LUCA BENEDITO;8A;Diretor de Esportes;25;aprovado;True
+14;MIGUEL DE OLIVEIRA LEAL;8A;Diretor de Esportes;59;aprovado;True
+15;MURILO GABRIEL SOUZA DOS SANTOS;8A;Diretor de Esportes;37;aprovado;True
+17;ELOÍSA FERREIRA DA SILVA;6B;Diretor de Eventos;50;aprovado;True
+19;JOÃO GUILHERME ALVES ARAUJO;7B;Diretor de Eventos;43;aprovado;True
+20;JOÃO MIGUEL DE CASTRO MARQUES;7A;Diretor de Eventos;53;aprovado;True
+21;LÍVIA GASPARINI ANDRADE;6A;Diretor de Eventos;06;aprovado;True
+22;MARIA CLARA RENALDI NOGUEIRA GOMES;7B;Diretor de Eventos;10;aprovado;True
+23;MARIAH MARCELINO LUIZ;8A;Diretor de Eventos;79;aprovado;True
+24;SOPHIA VITÓRIA MONGE ALVES;7B;Diretor de Eventos;49;aprovado;True
+25;Teste Final;8A;Diretor de Eventos;39;rejeitado;True
+26;BRAYAN HENRIQUE SILVA CASTANHARE;6A;Diretor de Meio Ambiente;56;aprovado;True
+27;JOÃO AUGUSTO DE ABRANTES FIALHO;7B;Diretor de Meio Ambiente;34;aprovado;True
+28;MARIA CLARA FERREIRA DOS SANTOS;6A;Diretor de Meio Ambiente;38;aprovado;True
+29;ANA LUIZA BRANDÃO GOLO DE OLIVEIRA;8C;Presidente;08;aprovado;True
+30;DANIEL SILVA ANDRADE;8C;Presidente;15;rejeitado;False
+31;HENRIQUE GABRIEL BEZERRA VITURINO;6B;Presidente;97;aprovado;True
+32;LUIZ OTÁVIO SANTINI PIRES;7A;Presidente;67;aprovado;True
+34;MARIA LAURA CARDOSO DE MORAIS;6B;Presidente;95;aprovado;True
+35;SAMUEL GOMES;7B;Presidente;46;aprovado;True

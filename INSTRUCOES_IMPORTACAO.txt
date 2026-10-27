@@ -1,0 +1,12 @@
+VOTA ESCOLA 2 — IMPORTAÇÃO DAS 32 CANDIDATURAS
+
+1. Mantenha cópia do PDF e do banco antigo.
+2. Publique todos os arquivos deste ZIP juntos no GitHub Pages (inclusive importar-candidaturas.html, candidaturas_importacao.js e candidaturas_importacao.json).
+3. Confira no Firebase Authentication que a conta gestora existe no projeto vota-escola-2.
+4. No Firestore, publique regras que permitam ao gestor autenticado criar candidaturas e ler eleitores/votos; as regras de produção devem ser revistas antes da eleição.
+5. Abra importar-candidaturas.html na mesma URL do site, entre com o login do gestor, clique em Verificar e em Importar.
+6. Se ocorrer falha no meio, NÃO reimporte nem apague registros; envie a mensagem para correção segura.
+7. A lista de eleitores NÃO está neste PDF. Será necessário importar o CSV de alunos separadamente.
+8. NÃO libere a votação antes de conferir candidatos, fotos, cargos, regras e urna.
+9. O candidato nº 25 Teste Final, rejeitado, foi mantido por instrução de excluir somente 16,18,33,36,37,38,39.
+10. A eleição anterior e os votos antigos permanecem intactos no projeto antigo.

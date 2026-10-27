@@ -1,0 +1,20 @@
+VOTA ESCOLA — OTIMIZAÇÃO DE LEITURAS — 27/10/2026
+
+CAUSA ENCONTRADA NO CÓDIGO ANTERIOR:
+- gestor.html consultava TODOS os eleitores a cada 3 segundos enquanto o painel de urnas estava aberto; além disso consultava a sessão e, se ocupada, lia eleitores/candidaturas repetidamente.
+- urna.html consultava a sessão a cada 1,5 segundo por equipamento.
+- resultados.html consultava TODOS os eleitores a cada 15 segundos quando os resultados estavam fechados.
+
+ALTERAÇÕES:
+- Gestor: sessão a cada 8 segundos; lista completa de eleitores a cada 120 segundos, e imediatamente ao entrar no painel; cargos votáveis em cache por 120 segundos na consulta de conclusão.
+- Urna: sessão a cada 6 segundos, sem sobrepor requisições e sem consultar em aba oculta.
+- Resultados: participação a cada 120 segundos quando a aba está visível.
+- Não há operações de exclusão, migração ou redefinição do banco.
+- Preservados os demais arquivos e funcionalidades do ZIP fornecido.
+
+LIMITAÇÕES:
+- Pode levar até 6 segundos para a urna detectar liberação, até 8 segundos para o gestor identificar conclusão, e até 2 minutos para atualizar listas/participação automaticamente.
+- Atualizações de candidaturas durante uma votação devem ser evitadas.
+- As regras Firestore fornecidas ainda têm permissões amplas; esta otimização NÃO corrige a segurança do sistema.
+- A quota diária já excedida só volta após renovação do Firebase.
+- TESTAR em projeto separado antes de substituir a versão da eleição. Faça backup de Firestore e arquivos.

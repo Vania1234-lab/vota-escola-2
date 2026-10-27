@@ -1,0 +1,7 @@
+VERSÃO DE DIAGNÓSTICO - NÃO SUBSTITUA A ELEIÇÃO EM ANDAMENTO SEM BACKUP.
+
+Esta versão preserva a lógica transacional do voto e exibe o código e a mensagem real de erro ao confirmar.
+Nenhuma rotina de limpeza, exclusão ou reinicialização foi adicionada.
+
+Teste com eleitor de teste em projeto separado. Envie o código e o detalhe do erro mostrado.
+Se for permission-denied, compare as regras efetivamente publicadas no Firebase com firestore.rules.

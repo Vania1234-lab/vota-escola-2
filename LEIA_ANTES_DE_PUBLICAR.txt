@@ -1,0 +1,38 @@
+VOTA ESCOLA — MÚLTIPLAS URNAS — VERSÃO DE TESTE
+
+NÃO SUBSTITUA A VERSÃO EM PRODUÇÃO DURANTE UMA ELEIÇÃO SEM BACKUP E TESTES.
+
+CORREÇÃO DO ERRO “Missing or insufficient permissions”:
+No Console Firebase > Firestore Database > Regras, publique o conteúdo de firestore.rules.
+Isso adiciona permissões à coleção urnas, sem apagar ou modificar documentos existentes.
+Atenção: as permissões antigas de eleitores e votos continuam amplas; NÃO são adequadas para eleições com exigência forte de integridade.
+
+COMO USAR:
+1. Em gestor.html, entre com usuário autenticado.
+2. Marque Votação aberta e salve, se necessário.
+3. Abra Liberação de urnas. Digite urna-1, urna-2 etc.
+4. Abra urna.html?urna=urna-1 em um equipamento e urna.html?urna=urna-2 em outro.
+5. Localize o aluno e clique Liberar. O aluno vota apenas nos cargos pendentes.
+6. Ao concluir todos os cargos, a urna mostra FIM; o gestor detecta o término e libera a urna.
+7. Se uma sessão foi interrompida, confirme que ninguém está votando e use Cancelar liberação interrompida. Votos já confirmados NÃO são apagados.
+
+PRESERVAÇÃO:
+Não há migração nem exclusão de eleitores, votos ou candidaturas.
+Votos são documentos anônimos separados dos eleitores. Não é possível nem desejável ligar retrospectivamente cada estudante ao candidato escolhido.
+
+LIMITAÇÕES IMPORTANTES:
+- Não foi possível verificar os 20 participantes nem os votos reais do seu Firebase. O número no painel não é prova de backup ou integridade.
+- As regras atuais permitem que clientes anônimos alterem eleitores e criem votos diretamente. O bloqueio da interface não protege contra chamadas diretas à API. Para uso real confiável, são necessárias validações no servidor (por exemplo, Cloud Functions), autenticação apropriada das urnas e regras fechadas.
+- A conclusão é marcada pelo gestor autenticado quando identifica todos os cargos votados. Mantenha o painel do gestor aberto.
+- Teste em uma cópia separada do banco, com duas urnas, interrupção de sessão, votos brancos/nulos e eleitores que já participaram parcialmente.
+- Publique os arquivos com os nomes exatos (sem sufixos numéricos) no mesmo diretório do GitHub Pages.
+
+REVISÃO PAINEL CANDIDATOS: Menu Candidatos inscritos preservado; aprovação, rejeição, alteração de cargo e relatório preservados. Acrescentada lista de aprovados, totais por status e filtro de candidaturas. Nenhuma migração de dados é executada. NÃO PUBLICAR SEM BACKUP E TESTES.
+
+ATUALIZAÇÃO — CARGOS NA URNA (27/10/2026):
+- Só aparecem cargos configurados que possuam pelo menos um candidato com status "aprovado".
+- Candidaturas pendentes ou rejeitadas não habilitam cargo na urna.
+- A lista é recalculada a cada eleitor liberado, sem modificar documentos existentes.
+- A verificação de eleitor concluído no gestor e a liberação usam o mesmo conjunto de cargos votáveis.
+- Nenhuma coleção é apagada, reiniciada ou migrada.
+- IMPORTANTE: se uma candidatura for aprovada após estudantes terem concluído a votação, a mudança no conjunto de cargos poderá exigir decisão da comissão eleitoral sobre esses eleitores. Evite alterar aprovações durante a votação.

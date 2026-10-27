@@ -1,0 +1,18 @@
+VOTA ESCOLA 2 — CONFIGURADO, AINDA SEM MIGRACAO
+
+Este pacote aponta para o NOVO projeto Firebase: vota-escola-2.
+Nao apaga nem modifica dados do projeto antigo.
+
+ATENCAO: apenas trocar o SDK NAO transfere eleitores, candidaturas, fotos, status de aprovacao ou configuracoes. O novo banco permanece vazio ate a importacao.
+
+ANTES DE USAR:
+1. Ative Firestore Database no projeto novo.
+2. Ative Firebase Authentication / Email-Senha e crie um usuario gestor. Usuarios de autenticacao NAO sao transferidos pelo SDK.
+3. Revise e publique regras adequadas ao fluxo de votacao. O arquivo firestore.rules do pacote e o legado de TESTES, com permissoes amplas; NAO use para eleicao real sem revisao.
+4. Exporte do projeto antigo as colecoes eleitores, candidaturas e configuracoes, preservando IDs e campos. Se a cota estiver esgotada, aguarde renovacao para exportar.
+5. Guarde backup completo do banco antigo (incluindo votos) como historico. Nao apague nada.
+6. Importe eleitores e candidaturas para o novo projeto, sem transportar a colecao votos e sem transportar votedCargos / indicadores de participacao da eleicao anulada.
+7. Confirme que fotos, numeros, cargos, aprovacao, rejeicao e demais campos foram preservados.
+8. Teste em ambiente controlado e acompanhe as leituras do Firestore.
+
+A importacao de dados NAO foi executada. Nao ha acesso aos dados remotos dos projetos nesta entrega.

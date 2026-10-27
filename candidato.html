@@ -1,0 +1,408 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Candidatura • Vota Escola</title><link rel="stylesheet" href="styles.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+</head><body>
+<header><div class="brand"><span class="ballot">🙋</span> Vota Escola • Candidatura</div></header>
+<main class="container">
+  <div class="card">
+    <h1>Inscrição de candidato</h1>
+    <p class="muted">Cada estudante pode se candidatar a <strong>apenas 1 cargo</strong>. O número eleitoral será gerado automaticamente.</p>
+    <div id="mode" class="notice"></div>
+    <div id="closed" class="notice error hidden">As inscrições estão encerradas.</div>
+    <form id="form">
+      <div class="grid grid-2">
+        <div><label>Nome completo</label><input id="nome" required></div>
+        <div><label>RA / matrícula</label><input id="ra" required>
+        <div id="raStatus" class="small muted" style="margin-top:6px">
+          Digite o RA para verificar se o estudante está cadastrado no sistema eleitoral.
+        </div></div>
+        <div><label>Turma</label><input id="turma" placeholder="Ex.: 8º A" required></div>
+        <div>
+  <label>Foto do candidato</label>
+  <input id="fotoArquivo" type="file" accept="image/*" required>
+  <p class="small muted">No celular, toque neste campo para escolher uma foto da galeria ou usar a câmera. No computador, escolha uma imagem salva. O sistema recorta, redimensiona e comprime automaticamente antes de salvar.</p>
+  <img id="fotoPreview" class="hidden" alt="Prévia da foto" style="width:130px;height:160px;object-fit:cover;border-radius:12px;border:2px solid #d5dce3;margin-top:10px">
+</div>
+      </div>
+      <hr>
+      <h3>Cargo da candidatura</h3>
+      <div class="grid grid-2">
+        <div><label>Cargo</label><select id="cargo1" required></select></div>
+        <div>
+          <label>Número eleitoral</label>
+          <div class="notice" style="margin:0">Será gerado automaticamente após o envio da candidatura.</div>
+        </div>
+      </div>
+      <label>Apresentação / propostas</label>
+      <textarea id="propostas" maxlength="1200" placeholder="Conte um pouco sobre você e suas propostas." required></textarea>
+      <p><label style="display:flex;gap:10px;align-items:flex-start;font-weight:600"><input id="aceite" type="checkbox" style="width:auto;margin-top:4px" required> Declaro que as informações são verdadeiras e aceito as regras da eleição.</label></p>
+      <button class="btn btn-primary" type="submit">Enviar candidatura</button>
+    </form>
+    <div id="msg"></div>
+  </div>
+  <a class="btn btn-light" href="index.html">← Voltar</a>
+</main>
+<script src="firebase-config.js"></script><script src="core.js"></script>
+<script>
+(async()=>{
+ const S=VotaEscola.Store; await S.init();
+ document.getElementById("mode").textContent = S.mode==="demo" ? "Modo demonstração: os dados ficam somente neste navegador." : "Conectado ao Firebase.";
+ const el=await S.getElection();
+ if(!el.registrationOpen){ document.getElementById("closed").classList.remove("hidden"); document.getElementById("form").classList.add("hidden"); return; }
+ const cargos=await S.getCargos();
+ const c1=document.getElementById("cargo1");
+ c1.innerHTML='<option value="">Selecione...</option>'+cargos.map(x=>`<option>${x}</option>`).join("");
+
+ const fotoInput=document.getElementById("fotoArquivo");
+ const fotoPreview=document.getElementById("fotoPreview");
+ let previewObjectURL=null;
+
+ function limparPreviewFoto(){
+   if(previewObjectURL){ URL.revokeObjectURL(previewObjectURL); previewObjectURL=null; }
+   fotoPreview.classList.add("hidden");
+   fotoPreview.removeAttribute("src");
+ }
+
+ fotoInput.addEventListener("change", ()=>{
+   limparPreviewFoto();
+   const file=fotoInput.files && fotoInput.files[0];
+   if(!file) return;
+   if(file.type && !file.type.startsWith("image/")){
+     show("Selecione um arquivo de imagem.",false); fotoInput.value=""; return;
+   }
+   // Não rejeitamos fotos grandes aqui: elas serão reduzidas no navegador.
+   // Isso é importante para câmeras de celulares atuais, que geram arquivos grandes.
+   previewObjectURL=URL.createObjectURL(file);
+   fotoPreview.src=previewObjectURL;
+   fotoPreview.classList.remove("hidden");
+ });
+
+ async function carregarImagem(file){
+   // Object URL evita transformar a foto original inteira em Base64 antes da compressão,
+   // reduzindo bastante o consumo de memória em celulares.
+   const objectURL=URL.createObjectURL(file);
+   try{
+     const img=await new Promise((resolve,reject)=>{
+       const el=new Image();
+       el.onload=()=>resolve(el);
+       el.onerror=()=>reject(new Error("FORMATO_FOTO_NAO_SUPORTADO"));
+       el.src=objectURL;
+     });
+     return img;
+   } finally {
+     // O navegador já decodificou a imagem quando onload dispara.
+     // Revogar aqui não invalida o objeto Image já carregado.
+     URL.revokeObjectURL(objectURL);
+   }
+ }
+
+ async function obterFotoURL(){
+   const file=fotoInput.files && fotoInput.files[0];
+   if(!file) throw new Error("Envie uma foto do candidato.");
+   if(file.type && !file.type.startsWith("image/")) throw new Error("Selecione um arquivo de imagem.");
+
+   let img;
+   try{
+     img=await carregarImagem(file);
+   }catch(err){
+     throw new Error("Não foi possível abrir esta foto. Se ela estiver em HEIC/HEIF e o aparelho não conseguir convertê-la, escolha outra foto ou faça uma captura pela câmera em formato compatível.");
+   }
+
+   const META_BYTES=82 * 1024;
+   const LIMITE_BYTES=96 * 1024;
+   const targetRatio=3/4;
+
+   function tamanhoBase64(data){
+     const base64=(data.split(",")[1] || "");
+     const padding=(base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0);
+     return Math.max(0, Math.floor(base64.length * 3 / 4) - padding);
+   }
+
+   function criarCanvas(outW,outH){
+     const iw=img.naturalWidth || img.width;
+     const ih=img.naturalHeight || img.height;
+     if(!iw || !ih) throw new Error("A foto selecionada não possui dimensões válidas.");
+
+     let sx=0, sy=0, sw=iw, sh=ih;
+     const sourceRatio=sw/sh;
+     if(sourceRatio > targetRatio){
+       sw=Math.round(sh*targetRatio);
+       sx=Math.round((iw-sw)/2);
+     }else if(sourceRatio < targetRatio){
+       sh=Math.round(sw/targetRatio);
+       sy=Math.round((ih-sh)/2);
+     }
+
+     const canvas=document.createElement("canvas");
+     canvas.width=outW; canvas.height=outH;
+     const ctx=canvas.getContext("2d",{alpha:false});
+     if(!ctx) throw new Error("Este navegador não conseguiu preparar a foto.");
+     ctx.fillStyle="#ffffff";
+     ctx.fillRect(0,0,outW,outH);
+     ctx.imageSmoothingEnabled=true;
+     ctx.imageSmoothingQuality="high";
+     ctx.drawImage(img,sx,sy,sw,sh,0,0,outW,outH);
+     return canvas;
+   }
+
+   // A foto final é pequena de propósito: ela fica dentro do próprio documento
+   // da candidatura no Firestore, sem depender do Firebase Storage.
+   const dimensoes=[[300,400],[270,360],[240,320],[210,280],[180,240],[150,200]];
+   const qualidades=[0.80,0.72,0.64,0.56,0.48,0.40,0.32,0.26];
+   let melhor="", melhorBytes=Infinity;
+
+   for(const [w,h] of dimensoes){
+     const canvas=criarCanvas(w,h);
+     for(const q of qualidades){
+       const data=canvas.toDataURL("image/jpeg",q);
+       const bytes=tamanhoBase64(data);
+       if(bytes < melhorBytes){ melhor=data; melhorBytes=bytes; }
+       if(bytes <= META_BYTES) return data;
+     }
+   }
+
+   if(melhor && melhorBytes <= LIMITE_BYTES) return melhor;
+   throw new Error("A foto não pôde ser reduzida para um tamanho seguro. Escolha outra imagem.");
+ }
+
+
+ const raInput=document.getElementById("ra");
+ const raStatus=document.getElementById("raStatus");
+ let eleitorValidado=null;
+ let raTimer=null;
+
+ async function validarRA(){
+   const ra=raInput.value.trim();
+   eleitorValidado=null;
+
+   if(!ra){
+     raStatus.className="small muted";
+     raStatus.textContent="Digite o RA para verificar se o estudante está cadastrado no sistema eleitoral.";
+     return null;
+   }
+
+   raStatus.className="small muted";
+   raStatus.textContent="Verificando RA...";
+
+   try{
+     const eleitor=await S.getVoter(ra);
+
+     if(!eleitor){
+       raStatus.className="notice error";
+       raStatus.innerHTML="<strong>RA não cadastrado.</strong> Somente estudantes incluídos na lista oficial de eleitores podem se candidatar.";
+       return null;
+     }
+
+     if(eleitor.ativo===false){
+       raStatus.className="notice error";
+       raStatus.innerHTML="<strong>RA inativo.</strong> Este estudante não está habilitado no sistema eleitoral.";
+       return null;
+     }
+
+     eleitorValidado=eleitor;
+
+     // Usa os dados oficiais do cadastro eleitoral para reduzir erros.
+     const nomeInput=document.getElementById("nome");
+     const turmaInput=document.getElementById("turma");
+     if(nomeInput && eleitor.nome) nomeInput.value=eleitor.nome;
+     if(turmaInput && eleitor.turma) turmaInput.value=eleitor.turma;
+
+     raStatus.className="notice success";
+     raStatus.innerHTML=`<strong>RA confirmado.</strong> ${escCandidato(eleitor.nome||"")} ${eleitor.turma?`• ${escCandidato(eleitor.turma)}`:""}`;
+     return eleitor;
+   }catch(err){
+     console.error("Erro ao validar RA:",err);
+     raStatus.className="notice error";
+     raStatus.textContent="Não foi possível conferir o RA agora. Tente novamente.";
+     return null;
+   }
+ }
+
+ raInput.addEventListener("input",()=>{
+   clearTimeout(raTimer);
+   eleitorValidado=null;
+   raTimer=setTimeout(validarRA,450);
+ });
+ raInput.addEventListener("blur",validarRA);
+
+ function escCandidato(v){
+   return String(v??"")
+     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+     .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+ }
+
+
+ async function gerarESalvarCandidatura(dadosBase){
+   const existentes=await S.listCandidaturas();
+
+   const normalizarRA=v=>String(v||"").replace(/\D/g,"") || String(v||"").trim().toLowerCase();
+   const normalizarNumero=v=>{
+     const d=String(v??"").replace(/\D/g,"");
+     return d ? d.padStart(2,"0").slice(-2) : "";
+   };
+   const raNormalizado=normalizarRA(dadosBase.ra);
+
+   // Regra de recandidatura:
+   // - candidatura pendente/aprovada bloqueia uma nova inscrição;
+   // - candidatura rejeitada pode ser reenviada;
+   // - no reenvio, o estudante mantém exatamente o mesmo número eleitoral.
+   const candidaturasDoAluno=existentes.filter(c=>normalizarRA(c.ra)===raNormalizado);
+   const ativa=candidaturasDoAluno.find(c=>String(c.status||"").trim().toLowerCase()!=="rejeitado");
+   if(ativa){
+     const status=String(ativa.status||"").trim().toLowerCase();
+     if(status==="pendente") throw new Error("Este estudante já possui uma candidatura aguardando análise.");
+     if(status==="aprovado") throw new Error("Este estudante já possui uma candidatura aprovada.");
+     throw new Error("Este estudante já possui uma candidatura ativa.");
+   }
+
+   // Se houve rejeição anterior, recupera o número já reservado ao estudante.
+   // Caso existam registros antigos duplicados, usa a rejeição mais recente que tenha número.
+   const rejeitadas=[...candidaturasDoAluno]
+     .filter(c=>String(c.status||"").trim().toLowerCase()==="rejeitado")
+     .reverse();
+   const anterior=rejeitadas.find(c=>normalizarNumero(c.numeroEleitoral || c.cargos?.[0]?.numero));
+
+   if(anterior){
+     const numero=normalizarNumero(anterior.numeroEleitoral || anterior.cargos?.[0]?.numero);
+     const dados={
+       ...dadosBase,
+       cargos:[{cargo:dadosBase.cargo,numero}],
+       numeroEleitoral:numero,
+       status:"pendente",
+       motivoRejeicao:"",
+       analisadoEm:null
+     };
+
+     if(S.mode==="firebase" && S.db && window.firebase?.firestore){
+       // A tentativa rejeitada é preservada como histórico. Em vez de atualizar
+       // esse documento (o que exigiria liberar UPDATE público nas regras),
+       // criamos uma NOVA tentativa pendente com o MESMO número eleitoral.
+       // Como todos os números já usados continuam sendo considerados ocupados,
+       // esse número permanece reservado exclusivamente para este estudante.
+       await S.db.collection("candidaturas").add({
+         ...dados,
+         tentativaAnteriorId:anterior.id,
+         reenviadoEm:firebase.firestore.FieldValue.serverTimestamp(),
+         createdAt:firebase.firestore.FieldValue.serverTimestamp()
+       });
+     }else{
+       // No modo demonstração também preservamos o histórico criando novo registro.
+       await S.saveCandidatura({
+         ...dados,
+         tentativaAnteriorId:anterior.id,
+         reenviadoEm:new Date().toISOString()
+       });
+     }
+
+     return {numero,dados,reenvio:true};
+   }
+
+   // Primeira candidatura: sorteia um número que nunca tenha sido usado.
+   // Números de candidaturas rejeitadas também permanecem ocupados/reservados.
+   const usados=new Set();
+   existentes.forEach(c=>{
+     const principal=normalizarNumero(c.numeroEleitoral);
+     if(principal) usados.add(principal);
+     (c.cargos||[]).forEach(item=>{
+       const n=normalizarNumero(item.numero);
+       if(n) usados.add(n);
+     });
+   });
+
+   const livres=[];
+   for(let n=1;n<=99;n++){
+     const numero=String(n).padStart(2,"0");
+     if(!usados.has(numero)) livres.push(numero);
+   }
+   if(!livres.length) throw new Error("Não há números eleitorais disponíveis entre 01 e 99.");
+
+   // Firebase: reserva o número de forma atômica. O documento usa o próprio
+   // número como ID, impedindo que outro candidato receba o mesmo número.
+   if(S.mode==="firebase" && S.db && window.firebase?.firestore){
+     const tentativas=[...livres].sort(()=>Math.random()-.5);
+     let ultimoErro=null;
+
+     for(const numero of tentativas){
+       const ref=S.db.collection("candidaturas").doc(numero);
+       const dados={...dadosBase,cargos:[{cargo:dadosBase.cargo,numero}],numeroEleitoral:numero};
+       try{
+         await S.db.runTransaction(async tx=>{
+           const snap=await tx.get(ref);
+           if(snap.exists) throw new Error("NUMERO_OCUPADO");
+           tx.set(ref,{
+             ...dados,
+             status:"pendente",
+             createdAt:firebase.firestore.FieldValue.serverTimestamp()
+           });
+         });
+         return {numero,dados,reenvio:false};
+       }catch(err){
+         ultimoErro=err;
+         if(String(err?.message||err).includes("NUMERO_OCUPADO")) continue;
+         throw err;
+       }
+     }
+     throw ultimoErro || new Error("Não foi possível reservar um número eleitoral.");
+   }
+
+   // Modo demonstração/local.
+   const numero=livres[Math.floor(Math.random()*livres.length)];
+   const dados={...dadosBase,cargos:[{cargo:dadosBase.cargo,numero}],numeroEleitoral:numero};
+   await S.saveCandidatura(dados);
+   return {numero,dados,reenvio:false};
+ }
+
+ document.getElementById("form").addEventListener("submit", async e=>{
+   e.preventDefault();
+   const botao=e.submitter || e.target.querySelector('button[type="submit"]');
+   if(botao){ botao.disabled=true; botao.textContent="Enviando..."; }
+
+   try{
+     const raDigitado=document.getElementById("ra").value.trim();
+     const eleitor=await S.getVoter(raDigitado);
+
+     if(!eleitor){
+       throw new Error("Este RA não está cadastrado no sistema eleitoral.");
+     }
+     if(eleitor.ativo===false){
+       throw new Error("Este RA está inativo no sistema eleitoral.");
+     }
+
+     eleitorValidado=eleitor;
+
+     const cargo1=c1.value;
+     if(!cargo1) throw new Error("Selecione o cargo para o qual deseja se candidatar.");
+
+     const fotoComprimida=await obterFotoURL();
+
+     const dadosBase={
+       nome:String(eleitor.nome||document.getElementById("nome").value).trim(),
+       ra:document.getElementById("ra").value.trim(),
+       turma:String(eleitor.turma||document.getElementById("turma").value).trim(),
+       foto:fotoComprimida,
+       propostas:document.getElementById("propostas").value.trim(),
+       cargo:cargo1
+     };
+
+     if(!dadosBase.nome || !dadosBase.ra || !dadosBase.turma || !dadosBase.propostas){
+       throw new Error("Preencha todos os campos obrigatórios.");
+     }
+
+     const {numero,reenvio}=await gerarESalvarCandidatura(dadosBase);
+
+     e.target.reset();
+     limparPreviewFoto();
+     show(reenvio ? `Nova tentativa enviada com sucesso! Seu número eleitoral continua sendo ${numero}. A candidatura voltou para análise da comissão eleitoral.` : `Candidatura enviada com sucesso! Seu número eleitoral é ${numero}. A candidatura está aguardando aprovação da comissão eleitoral.`,true);
+   }catch(err){
+     console.error("Erro ao enviar candidatura:",err);
+     const detalhe=(err && (err.code || err.message)) ? ` (${err.code || err.message})` : "";
+     show("Não foi possível salvar a candidatura"+detalhe+".",false);
+   }finally{
+     if(botao){ botao.disabled=false; botao.textContent="Enviar candidatura"; }
+   }
+ });
+ function show(t,ok){ const m=document.getElementById("msg"); m.className="notice "+(ok?"success":"error"); m.textContent=t; }
+})();
+</script></body></html>

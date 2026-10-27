@@ -1,0 +1,975 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comissão Eleitoral • Vota Escola</title><style id="vota-estilos-base">
+
+:root{
+  --blue:#174f8f;
+  --blue2:#0f3f75;
+  --blue-soft:#eaf2fb;
+  --bg:#eef3f8;
+  --card:#ffffff;
+  --text:#15202b;
+  --muted:#66788a;
+  --border:#d8e1ea;
+  --success:#198754;
+  --danger:#c93434;
+  --warning:#d59000;
+  --shadow:0 12px 35px rgba(23,79,143,.12);
+  --radius:20px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:Inter,Segoe UI,Arial,sans-serif;color:var(--text);background:var(--bg)}
+body{min-height:100vh}
+header{
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  color:#fff;padding:18px 24px;box-shadow:0 2px 10px rgba(0,0,0,.08)
+}
+.brand{font-size:1.15rem;font-weight:800;display:flex;align-items:center;gap:10px}
+.container{width:min(1180px,92%);margin:28px auto 60px}
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:24px;margin-bottom:20px
+}
+h1,h2,h3{margin-top:0;color:#10263b}
+h1{font-size:clamp(2rem,4vw,3.2rem)}
+h2{font-size:1.55rem}
+h3{font-size:1.08rem}
+p{line-height:1.55}
+label{display:block;font-weight:700;margin:10px 0 6px}
+input,select,textarea{
+  width:100%;border:1px solid #c9d5e2;border-radius:12px;padding:12px 13px;
+  font-size:1rem;background:white;outline:none;transition:.2s
+}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(23,79,143,.12)}
+textarea{min-height:130px;resize:vertical}
+button,.btn{
+  border:none;border-radius:12px;padding:11px 16px;font-weight:800;font-size:.98rem;
+  cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px
+}
+.btn-primary,button.primary{background:var(--blue);color:#fff}
+.btn-primary:hover,button.primary:hover{background:var(--blue2)}
+.btn-light{background:#edf3f8;color:#16324d}
+.btn-success{background:var(--success);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.muted{color:var(--muted)}
+.small{font-size:.9rem}
+.notice{
+  border-radius:14px;padding:13px 15px;background:var(--blue-soft);
+  border-left:5px solid var(--blue);margin:12px 0
+}
+.notice.success{background:#eaf7ef;border-left-color:var(--success)}
+.notice.error{background:#fff0f0;border-left-color:var(--danger)}
+.notice.warning{background:#fff7df;border-left-color:var(--warning)}
+.hidden{display:none!important}
+.stat{
+  background:#fff;border:1px solid var(--border);border-radius:18px;
+  padding:18px 20px;box-shadow:var(--shadow)
+}
+.stat span{display:block;color:var(--muted);margin-bottom:5px}
+.stat strong{font-size:2rem}
+.panel-actions{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:26px
+}
+.panel-tile{
+  background:#fff;border:2px solid #253444;border-radius:24px;min-height:180px;
+  padding:22px;text-align:center;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;cursor:pointer;box-shadow:var(--shadow);transition:.2s
+}
+.panel-tile:hover{transform:translateY(-3px);border-color:var(--blue)}
+.panel-tile .icon{font-size:2.2rem;margin-bottom:8px}
+.panel-tile .title{font-size:1.1rem;font-weight:900;text-transform:uppercase}
+.panel-tile .sub{color:var(--muted);margin-top:7px}
+.hero{
+  border-radius:24px;background:linear-gradient(135deg,#273747,#3e5970);
+  color:#fff;padding:32px;margin-bottom:24px;box-shadow:var(--shadow)
+}
+.hero h1,.hero h2{color:white;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{padding:12px;border-bottom:1px solid #e6ebf0;text-align:left;vertical-align:top}
+th{background:#f6f8fa}
+.avatar{
+  width:78px;height:96px;border-radius:12px;background:#edf1f4;
+  display:grid;place-items:center;overflow:hidden
+}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.candidate-row{
+  display:flex;gap:16px;align-items:flex-start;border:1px solid var(--border);
+  border-radius:16px;padding:16px;margin-bottom:14px;background:#fff
+}
+.badge{display:inline-block;border-radius:999px;padding:4px 9px;font-size:.78rem;font-weight:800}
+.badge-aprovado{background:#e5f6eb;color:#23713f}
+.badge-pendente{background:#fff4d8;color:#8a6500}
+.badge-rejeitado{background:#ffe9e9;color:#9a2323}
+.photo-preview{
+  width:145px;height:180px;border-radius:16px;object-fit:cover;
+  border:2px solid #d5dce3;background:#edf1f4
+}
+
+/* Urna */
+.urna-shell{width:min(1120px,95%);margin:26px auto}
+.urna{
+  background:#d9d5cb;border:1px solid #aaa;border-radius:18px;padding:20px;
+  display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.75fr);
+  gap:20px;box-shadow:0 18px 40px rgba(0,0,0,.18)
+}
+.tela{
+  background:#f7f7f2;border:2px solid #444;border-radius:12px;min-height:500px;
+  padding:24px;position:relative
+}
+.teclado{
+  background:#2f3338;border-radius:14px;padding:18px;display:flex;flex-direction:column;justify-content:center
+}
+.teclas-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tecla{
+  background:#1b1d20;color:#fff;border:2px solid #555;border-radius:8px;
+  padding:16px;font-size:1.4rem;font-weight:900
+}
+.acoes{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:10px;margin-top:14px}
+.acao{border-radius:8px;padding:14px 8px;font-weight:900}
+.branco{background:#f1f1f1;color:#111}
+.corrige{background:#e58b30;color:#111}
+.confirma{background:#3a9f63;color:#111}
+.numero-display{font-size:3rem;letter-spacing:.18em;font-weight:900;margin:20px 0}
+.candidate-box{display:flex;gap:16px;align-items:flex-start;margin-top:18px}
+.candidate-box img{width:125px;height:155px;object-fit:cover;border-radius:12px;background:#e6e6e6}
+.fim{font-size:5rem;text-align:center;margin-top:130px;font-weight:900;letter-spacing:.08em}
+
+@media(max-width:900px){
+  .grid-4,.grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .panel-actions{grid-template-columns:1fr}
+  .urna{grid-template-columns:1fr}
+}
+@media(max-width:650px){
+  .container{width:min(94%,100%)}
+  .card{padding:18px}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+  .candidate-row{flex-direction:column}
+  .hero{padding:24px}
+  .tela{min-height:420px;padding:16px}
+  .tecla{padding:14px}
+}
+
+
+/* Dados eleitorais da candidatura no painel do gestor */
+.candidate-election-data{display:grid;grid-template-columns:minmax(150px,190px) minmax(220px,1fr);gap:12px;margin-top:14px}
+.candidate-number-box,.candidate-role-box{border:1px solid #dfe5eb;border-radius:14px;padding:12px 14px;background:#f8fafc}
+.candidate-number-box{background:#eef5ff;border-color:#cfe0f5}
+.candidate-number-box span,.candidate-role-box span{display:block;font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:#687582;font-weight:800;margin-bottom:4px}
+.candidate-number-box strong{font-size:2rem;line-height:1;color:#174f8f;letter-spacing:.04em}
+.candidate-role-box strong{font-size:1.05rem;color:#1d2b38}
+@media(max-width:620px){.candidate-election-data{grid-template-columns:1fr}.candidate-number-box strong{font-size:1.8rem}}
+
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<style>
+        
+        .gestor-menu{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:28px;margin:34px 0}
+        .gestor-menu-btn{background:#fff;border:3px solid #16202a;border-radius:28px;min-height:150px;padding:22px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 10px 28px rgba(31,52,73,.08);transition:.18s ease;font:inherit;color:#17222c}
+        .gestor-menu-btn:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(31,52,73,.15);border-color:#1559a8}
+        .gestor-menu-btn .menu-icon{font-size:2.15rem;margin-bottom:8px}
+        .gestor-menu-btn strong{font-size:1.12rem;text-transform:uppercase;letter-spacing:.02em}
+        .gestor-menu-btn span{font-size:.88rem;color:#647382;margin-top:6px}
+        .ambiente-topo{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+        .ambiente-topo h2{margin:0}
+        .btn-voltar-painel{background:#eef3f8;border:1px solid #cbd6e0;color:#18364f}
+        .painel-home-note{margin:8px 0 0;color:#657484;text-align:center}
+
+        @media(max-width:700px){
+          .candidate-row{flex-direction:column}
+          .candidate-row>div:last-child{width:100%;flex-direction:row!important}
+          .candidate-row>div:last-child .btn{flex:1}
+          .gestor-menu{grid-template-columns:1fr;gap:16px}
+          .gestor-menu-btn{min-height:120px}
+        }
+        </style></head><body>
+<header><div class="brand"><span class="ballot">📊</span> Vota Escola • Comissão Eleitoral</div></header>
+<main class="container">
+  <section id="loginGestor" class="card" style="max-width:520px;margin:40px auto">
+    <h1>Acesso do gestor</h1>
+    <p class="muted">Entre com o usuário criado no Firebase Authentication.</p>
+    <label>E-mail</label>
+    <input id="gestorEmail" type="email" autocomplete="username" placeholder="gestor@escola.com">
+    <label>Senha</label>
+    <input id="gestorSenha" type="password" autocomplete="current-password" placeholder="Senha">
+    <button id="entrarGestor" class="btn btn-primary" style="margin-top:14px">Entrar</button>
+    <div id="loginGestorMsg"></div>
+  </section>
+  <div id="appGestor" class="hidden">
+
+  <div id="mode" class="notice"></div>
+  <section class="card">
+    <h1>Controle da eleição</h1>
+    <div class="grid grid-3">
+      <label><input id="regOpen" type="checkbox" style="width:auto"> Inscrições abertas</label>
+      <label><input id="voteOpen" type="checkbox" style="width:auto"> Votação aberta</label>
+      <label><input id="resultsOpen" type="checkbox" style="width:auto"> Resultados liberados</label>
+    </div>
+    <button id="saveConfig" class="btn btn-primary">Salvar configuração</button>
+  </section>
+
+  <section class="grid grid-3">
+    <div class="stat"><span class="muted">Candidaturas</span><strong id="sCand">0</strong></div>
+    <div class="stat"><span class="muted">Aprovadas</span><strong id="sApr">0</strong></div>
+    <div class="stat"><span class="muted">Eleitores cadastrados</span><strong id="sEleitores">0</strong></div>
+    <div class="stat"><span class="muted">Eleitores que já participaram</span><strong id="sVot">0</strong></div>
+  </section>
+
+  <section id="menuGestor">
+    <div class="gestor-menu">
+      <button class="gestor-menu-btn" type="button" onclick="abrirAmbienteGestor('ambienteCandidatos')">
+        <div class="menu-icon">👥</div>
+        <strong>Candidatos inscritos</strong>
+        <span>Aprovar, rejeitar e consultar aprovados</span>
+      </button>
+      <button class="gestor-menu-btn" type="button" onclick="abrirAmbienteGestor('ambienteApuracao')">
+        <div class="menu-icon">📊</div>
+        <strong>Apuração</strong>
+        <span>Acompanhar a eleição</span>
+      </button>
+      <button class="gestor-menu-btn" type="button" onclick="abrirAmbienteGestor('ambienteUrnas')"><div class="menu-icon">🗳️</div><strong>Liberação de urnas</strong><span>Autorizar um eleitor por urna</span></button>
+      <button class="gestor-menu-btn" type="button" onclick="abrirAmbienteGestor('ambienteEleitores')">
+        <div class="menu-icon">🪪</div>
+        <strong>Cadastro de eleitores</strong>
+        <span>Adicionar e importar estudantes</span>
+      </button>
+    </div>
+    <p class="painel-home-note">Escolha uma área para administrar a eleição.</p>
+  </section>
+
+  <section id="ambienteCandidatos" class="card ambiente-gestor hidden">
+    <div class="ambiente-topo"><h2>Candidatos inscritos</h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
+    <p class="muted">Analise as propostas e aprove ou rejeite cada candidatura.</p>
+    <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:15px 0 20px">
+      <div><label for="filtroRelatorio">Candidaturas no relatório</label><select id="filtroRelatorio"><option value="todos">Todas (inclusive pendentes e rejeitadas)</option><option value="aprovado">Somente aprovadas</option><option value="pendente">Somente pendentes</option></select></div>
+      <button id="btnRelatorioCandidatos" class="btn btn-primary" type="button">📄 Gerar lista em PDF</button>
+    </div>
+    <div class="grid grid-3" style="margin:16px 0">
+      <div class="stat"><span>Aguardando análise</span><strong id="cPendentes">0</strong></div>
+      <div class="stat"><span>Aprovados</span><strong id="cAprovados">0</strong></div>
+      <div class="stat"><span>Rejeitados</span><strong id="cRejeitados">0</strong></div>
+    </div>
+    <label for="filtroCandidaturasTela">Visualizar candidaturas</label>
+    <select id="filtroCandidaturasTela" style="max-width:420px"><option value="todos">Todos os candidatos</option><option value="pendente">Aguardando aprovação</option><option value="aprovado">Somente candidatos aprovados</option><option value="rejeitado">Candidatos rejeitados</option></select>
+    <h3 style="margin-top:22px">Lista de candidatos aprovados</h3>
+    <div id="listaCandidatosAprovados" class="notice">Carregando candidatos aprovados...</div>
+    <h3 style="margin-top:24px">Análise e gerenciamento de candidaturas</h3>
+    <div id="candList"></div>
+  </section>
+
+  <section id="ambienteApuracao" class="card ambiente-gestor hidden">
+    <div class="ambiente-topo"><h2>Apuração</h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
+    <div id="locked" class="notice">Os resultados ficam ocultos enquanto não forem liberados.</div>
+    <div id="results" class="hidden"></div>
+  </section>
+
+  <section id="ambienteUrnas" class="card ambiente-gestor hidden">
+    <div class="ambiente-topo"><h2>🗳️ Controle das urnas</h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
+    <p>Cadastre o identificador da urna (por exemplo, <b>urna-1</b> ou <b>urna-2</b>). Abra <b>urna.html?urna=urna-1</b> no primeiro computador e <b>urna.html?urna=urna-2</b> no segundo.</p>
+    <div class="grid grid-2"><div><label>Identificador da urna</label><input id="gestorUrnaId" value="urna-1" placeholder="urna-1"></div><div><label>Localizar eleitor por nome ou RA</label><input id="gestorBuscaLiberacao" placeholder="Digite para pesquisar"></div></div>
+    <div id="gestorSessaoInfo" class="notice">Consultando urna...</div>
+    <div id="gestorListaLiberacao"></div>
+    <button id="gestorAtualizarUrna" class="btn btn-light" type="button">Atualizar situação</button> <button id="gestorCancelarUrna" class="btn btn-danger" type="button" disabled>Cancelar liberação interrompida</button>
+  </section>
+  <section id="ambienteEleitores" class="card ambiente-gestor hidden">
+    <div class="ambiente-topo"><h2>Cadastro de eleitores</h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
+    <p class="muted">Somente RAs cadastrados aqui poderão entrar na urna. Cada RA poderá registrar no máximo um voto por cargo.</p>
+
+    <div class="grid grid-3">
+      <div><label>RA / matrícula</label><input id="eleitorRA" placeholder="RA do estudante"></div>
+      <div><label>Nome completo</label><input id="eleitorNome" placeholder="Nome do estudante"></div>
+      <div><label>Turma</label><input id="eleitorTurma" placeholder="Ex.: 8º A"></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+      <button id="addEleitor" class="btn btn-primary">Cadastrar eleitor</button>
+    </div>
+
+    <hr>
+    <h3>Importar vários eleitores por CSV</h3>
+    <p class="small muted">Cabeçalhos aceitos: <strong>RA, NOME, TURMA</strong>. Pode usar vírgula ou ponto e vírgula.</p>
+    <input id="csvEleitores" type="file" accept=".csv,text/csv">
+    <button id="importarEleitores" class="btn btn-light" style="margin-top:10px">Importar CSV</button>
+    <div id="eleitorMsg"></div>
+
+    <hr>
+    <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px">
+        <label>Buscar eleitor</label>
+        <input id="buscaEleitor" placeholder="Digite nome, RA ou turma">
+      </div>
+    </div>
+    <div id="eleitoresList" style="margin-top:14px"></div>
+  </section>
+  <a class="btn btn-light" href="index.html">← Voltar</a>
+  </div>
+</main>
+<script src="firebase-config.js"></script><script src="core.js"></script>
+<script>
+(async()=>{
+ const S=window.VotaEscola?.Store;
+ if(!S){
+   document.getElementById("loginGestorMsg").className="notice error";
+   document.getElementById("loginGestorMsg").textContent="Falha ao carregar core.js ou firebase-config.js. Verifique se todos os arquivos estão na mesma pasta.";
+   return;
+ }
+ try { await S.init(); } catch(err) {
+   console.error("Falha de inicialização:",err);
+   document.getElementById("loginGestorMsg").className="notice error";
+   document.getElementById("loginGestorMsg").textContent="Falha ao conectar ao Firebase: "+(err.message||err);
+   return;
+ }
+
+ if(S.mode==="demo"){
+   document.getElementById("loginGestor").classList.add("hidden");
+   document.getElementById("appGestor").classList.remove("hidden");
+   document.getElementById("mode").textContent="Modo demonstração: dados locais neste navegador.";
+   await iniciarPainel();
+   return;
+ }
+
+ document.getElementById("entrarGestor").onclick=async()=>{
+   const email=document.getElementById("gestorEmail").value.trim();
+   const senha=document.getElementById("gestorSenha").value;
+   const msg=document.getElementById("loginGestorMsg");
+   if(!email || !senha){
+     msg.className="notice error";
+     msg.textContent="Informe e-mail e senha.";
+     return;
+   }
+   try{
+     document.getElementById("entrarGestor").disabled=true;
+     msg.className="notice";
+     msg.textContent="Verificando acesso...";
+     await firebase.auth().signInWithEmailAndPassword(email,senha);
+   }catch(err){
+     console.error(err);
+     msg.className="notice error";
+     msg.textContent="Não foi possível entrar: "+(err.code||err.message||"Confira o e-mail e a senha.");
+   }finally{
+     document.getElementById("entrarGestor").disabled=false;
+   }
+ };
+
+ firebase.auth().onAuthStateChanged(async user=>{
+   if(!user){
+     document.getElementById("loginGestor").classList.remove("hidden");
+     document.getElementById("appGestor").classList.add("hidden");
+     return;
+   }
+   document.getElementById("loginGestor").classList.add("hidden");
+   document.getElementById("appGestor").classList.remove("hidden");
+   document.getElementById("mode").innerHTML=
+     `Gestor conectado: <strong>${user.email||"usuário autenticado"}</strong> 
+      <button id="sairGestor" class="btn btn-light" style="margin-left:10px;padding:7px 12px">Sair</button>`;
+   document.getElementById("sairGestor").onclick=()=>firebase.auth().signOut();
+   try { await iniciarPainel(); }
+   catch(err){
+     console.error("Falha ao carregar painel:",err);
+     document.getElementById("mode").className="notice error";
+     document.getElementById("mode").textContent="Login realizado, mas houve erro ao carregar o painel: "+(err.message||err);
+   }
+ });
+
+ async function iniciarPainel(){
+ const el=await S.getElection();
+ regOpen.checked=!!el.registrationOpen; voteOpen.checked=!!el.votingOpen; resultsOpen.checked=!!el.resultsReleased;
+
+ async function gerarResultadoPublico(){
+   const [cargos,candidaturas,votos]=await Promise.all([
+     S.getCargos(),
+     S.listCandidaturas(),
+     S.listVotes()
+   ]);
+
+   const norm=v=>String(v??"").trim().toLocaleLowerCase("pt-BR");
+   const num=v=>{
+     const d=String(v??"").replace(/\D/g,"");
+     return d ? d.padStart(2,"0").slice(-2) : "";
+   };
+
+   const aprovadas=candidaturas.filter(c=>norm(c.status)==="aprovado");
+   const resultadoCargos=cargos.map(cargo=>{
+     const candidatos=[];
+     aprovadas.forEach(c=>{
+       (c.cargos||[]).forEach(item=>{
+         if(norm(item.cargo)===norm(cargo)){
+           candidatos.push({
+             id:c.id,
+             nome:c.nome||"Sem nome",
+             turma:c.turma||"",
+             numero:num(item.numero)
+           });
+         }
+       });
+     });
+
+     const votosCargo=votos.filter(v=>norm(v.cargo)===norm(cargo));
+     const brancos=votosCargo.filter(v=>v.tipo==="branco").length;
+     const nulos=votosCargo.filter(v=>v.tipo==="nulo").length;
+     const validos=votosCargo.filter(v=>v.tipo==="valido").length;
+
+     candidatos.forEach(c=>{
+       c.votos=votosCargo.filter(v=>
+         v.tipo==="valido" &&
+         (
+           (v.candidatoId && String(v.candidatoId)===String(c.id)) ||
+           (!v.candidatoId && num(v.numero)===num(c.numero))
+         )
+       ).length;
+       c.percentual=validos ? Number((c.votos/validos*100).toFixed(2)) : 0;
+     });
+
+     candidatos.sort((a,b)=>b.votos-a.votos || String(a.numero).localeCompare(String(b.numero)));
+     const maior=candidatos.length ? candidatos[0].votos : 0;
+     const vencedores=maior>0 ? candidatos.filter(c=>c.votos===maior).map(c=>c.id) : [];
+
+     // O resultado público recebe somente dados necessários para exibição.
+     // RA e outros dados administrativos não são copiados para config/resultadoPublico.
+     const candidatosPublicos=candidatos.map(c=>({
+       id:c.id,
+       nome:c.nome||"",
+       turma:c.turma||"",
+       foto:c.foto||"",
+       numero:c.numero||"",
+       votos:Number(c.votos||0),
+       percentual:Number(c.percentual||0)
+     }));
+
+     return {
+       cargo,
+       total:votosCargo.length,
+       validos,
+       brancos,
+       nulos,
+       candidatos:candidatosPublicos,
+       vencedores
+     };
+   });
+
+   await S.savePublicResults({
+     electionName:el.name||"Eleição do Grêmio Estudantil",
+     released:true,
+     generatedAt:new Date().toISOString(),
+     cargos:resultadoCargos
+   });
+ }
+
+ saveConfig.onclick=async()=>{
+   try{
+     saveConfig.disabled=true;
+     saveConfig.textContent="Salvando...";
+
+     const novaConfig={
+       ...el,
+       registrationOpen:regOpen.checked,
+       votingOpen:voteOpen.checked,
+       resultsReleased:resultsOpen.checked
+     };
+
+     // Primeiro salva a configuração.
+     await S.setElection(novaConfig);
+
+     // Se os resultados foram liberados, gera uma fotografia pública da apuração.
+     // Nenhum RA, nome de eleitor ou vínculo entre eleitor e voto é copiado.
+     if(resultsOpen.checked){
+       saveConfig.textContent="Gerando apuração...";
+       await gerarResultadoPublico();
+     }
+
+     alert(resultsOpen.checked
+       ? "Configuração salva e resultado público gerado com sucesso."
+       : (voteOpen.checked
+          ? "Configuração salva. A URNA ESTÁ ABERTA para votação."
+          : "Configuração salva. A urna está fechada."));
+   }catch(err){
+     console.error(err);
+     alert("Não foi possível salvar a configuração/apuração: "+(err?.message||err));
+   }finally{
+     saveConfig.disabled=false;
+     saveConfig.textContent="Salvar configuração";
+   }
+ };
+ // Relatório preparado no navegador com os dados atuais do Firestore.
+ document.getElementById("btnRelatorioCandidatos").addEventListener("click", async ()=>{
+   const btn=document.getElementById("btnRelatorioCandidatos");
+   const popup=window.open("", "_blank");
+   if(!popup){ alert("Permita pop-ups para gerar o PDF."); return; }
+   btn.disabled=true;
+   try{
+     const [candidatos,eleicao]=await Promise.all([S.listCandidaturas(),S.getElection()]);
+     const filtro=document.getElementById("filtroRelatorio").value;
+     const selecionados=candidatos.filter(c=>filtro==="todos" || c.status===filtro)
+       .sort((a,b)=>String(a.cargos?.[0]?.cargo||a.cargo||"").localeCompare(String(b.cargos?.[0]?.cargo||b.cargo||""),"pt-BR") || String(a.nome||"").localeCompare(String(b.nome||""),"pt-BR"));
+     const escapeHTML=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+     const safePhoto=v=>typeof v==="string" && (/^data:image\/(jpeg|png|webp);base64,/i.test(v)||/^https:\/\//i.test(v)) ? v : "";
+     const itens=selecionados.map((c,i)=>{
+       const foto=safePhoto(c.foto);
+       const cargo=c.cargos?.[0]?.cargo||c.cargo||"Não informado";
+       const numero=c.numeroEleitoral||c.cargos?.[0]?.numero||"—";
+       return `<article class="candidate"><div class="photo">${foto?`<img src="${escapeHTML(foto)}">`:"Sem foto"}</div><div class="info"><div class="top"><span class="name">${i+1}. ${escapeHTML(c.nome||"Sem nome")}</span><span class="number">Nº ${escapeHTML(numero)}</span></div><div class="meta"><b>Cargo:</b> ${escapeHTML(cargo)} &nbsp; | &nbsp; <b>Turma:</b> ${escapeHTML(c.turma||"—")} &nbsp; | &nbsp; <b>Situação:</b> ${escapeHTML(c.status||"—")}</div><div class="propostas"><b>Propostas:</b><p>${escapeHTML(c.propostas||"Nenhuma proposta informada.")}</p></div></div></article>`;
+     }).join("");
+     const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Lista de candidatos - Vota Escola</title><style>
+       @page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#1b2938;margin:0}header{border-bottom:3px solid #174f8f;padding-bottom:12px;margin-bottom:18px}h1{font-size:22px;color:#174f8f;margin:0 0 5px}.sub{font-size:12px;color:#556575}.candidate{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid #cdd9e5;break-inside:avoid;page-break-inside:avoid}.photo{width:76px;height:95px;flex:none;border:1px solid #d1d9e2;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:10px;color:#777}.photo img{width:100%;height:100%;object-fit:cover}.info{flex:1;min-width:0}.top{display:flex;justify-content:space-between;gap:10px;align-items:start}.name{font-size:15px;font-weight:700}.number{font-size:18px;font-weight:800;color:#174f8f;white-space:nowrap}.meta{font-size:11px;margin:7px 0}.propostas{font-size:12px;line-height:1.45}.propostas p{white-space:pre-wrap;overflow-wrap:anywhere;margin:5px 0 0}.actions{padding:12px;background:#eef4fa;margin-bottom:18px;text-align:center}.actions button{padding:10px 18px;font-weight:bold;cursor:pointer}@media print{.actions{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+       </style></head><body><div class="actions"><button onclick="window.print()">Imprimir / Salvar como PDF</button><p>Na impressão, selecione “Salvar como PDF” e papel A4.</p></div><header><h1>${escapeHTML(eleicao.school||"Vota Escola")}</h1><div><b>${escapeHTML(eleicao.name||"Eleição escolar")}</b> — Lista de candidatos</div><div class="sub">Filtro: ${escapeHTML(filtro==="todos"?"Todas as candidaturas":filtro)} | Total: ${selecionados.length} | Emitido em ${new Date().toLocaleString("pt-BR")}</div></header>${itens||"<p>Nenhuma candidatura encontrada para este filtro.</p>"}</body></html>`;
+     popup.document.open();popup.document.write(html);popup.document.close();
+   }catch(err){popup.close();console.error(err);alert("Erro ao gerar lista: "+(err.message||err));}
+   finally{btn.disabled=false;}
+ });
+ async function refresh(){
+   const cs=await S.listCandidaturas(), voters=await S.listVoters();
+   const cargosDisponiveis=await S.getCargos();
+   sCand.textContent=cs.length;
+   sApr.textContent=cs.filter(x=>x.status==="aprovado").length;
+   sEleitores.textContent=voters.length;
+   sVot.textContent=voters.filter(x=>Array.isArray(x.votedCargos) && x.votedCargos.length>0).length;
+   renderEleitores(voters);
+   const statusCandidato = c => String(c.status||"pendente").trim().toLowerCase();
+   document.getElementById("cPendentes").textContent=cs.filter(c=>statusCandidato(c)==="pendente").length;
+   document.getElementById("cAprovados").textContent=cs.filter(c=>statusCandidato(c)==="aprovado").length;
+   document.getElementById("cRejeitados").textContent=cs.filter(c=>statusCandidato(c)==="rejeitado").length;
+   const aprovados=cs.filter(c=>statusCandidato(c)==="aprovado").sort((a,b)=>String(a.nome||"").localeCompare(String(b.nome||""),"pt-BR"));
+   document.getElementById("listaCandidatosAprovados").innerHTML=aprovados.length
+      ? `<div style="overflow-x:auto"><table><thead><tr><th>Candidato</th><th>Turma</th><th>Cargo</th><th>Número</th></tr></thead><tbody>${aprovados.map(c=>`<tr><td>${esc(c.nome||"Sem nome")}</td><td>${esc(c.turma||"—")}</td><td>${esc((c.cargos||[]).map(x=>x.cargo).join(", ")||c.cargo||"—")}</td><td><strong>${esc((c.cargos||[]).map(x=>x.numero).join(", ")||c.numeroEleitoral||"—")}</strong></td></tr>`).join("")}</tbody></table></div>`
+      : "Nenhum candidato aprovado até o momento.";
+   const filtroTela=document.getElementById("filtroCandidaturasTela").value;
+   const csExibidos=filtroTela==="todos"?cs:cs.filter(c=>statusCandidato(c)===filtroTela);
+   candList.innerHTML=csExibidos.length?csExibidos.map(c=>`
+     <div class="candidate-row" style="align-items:flex-start">
+       <div class="avatar" style="flex:0 0 78px;width:78px;height:96px">
+         ${c.foto?`<img src="${c.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`:"👤"}
+       </div>
+
+       <div style="flex:1;min-width:0">
+         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+           <strong style="font-size:1.12rem">${c.nome}</strong>
+           <span class="badge badge-${c.status}">${c.status}</span>
+         </div>
+
+         <div class="small muted" style="margin-top:4px">
+           ${c.turma||""} ${c.ra?`• RA ${c.ra}`:""}
+         </div>
+
+         <div class="candidate-election-data">
+           <div class="candidate-number-box">
+             <span>Número eleitoral</span>
+             <strong>${esc(c.numeroEleitoral || c.cargos?.[0]?.numero || "--")}</strong>
+           </div>
+           <div class="candidate-role-box">
+             <span>Cargo escolhido</span>
+             <strong>${esc(c.cargos?.[0]?.cargo || c.cargo || "Não informado")}</strong>
+             <div style="margin-top:10px">
+               <label for="cargo-gestor-${c.id}" style="font-size:.82rem;margin:0 0 5px">Alterar cargo pretendido</label>
+               <select id="cargo-gestor-${c.id}" style="min-width:220px">
+                 ${cargosDisponiveis.map(cargo=>`<option value="${esc(cargo)}" ${cargo===(c.cargos?.[0]?.cargo || c.cargo || "")?"selected":""}>${esc(cargo)}</option>`).join("")}
+               </select>
+               <button class="btn btn-primary" style="margin-top:8px;width:100%" onclick="alterarCargoCandidato('${c.id}')">Salvar novo cargo</button>
+             </div>
+           </div>
+         </div>
+
+         ${c.status==="pendente" ? `<div class="notice" style="margin-top:12px"><strong>Aguardando análise.</strong> Confira número, cargo, foto e propostas antes de aprovar ou rejeitar.</div>` : ""}
+
+         <div style="margin-top:12px;padding:12px;background:#f7f9fb;border-radius:10px;border:1px solid #e3e8ed">
+           <strong>Propostas do candidato</strong>
+           <div style="margin-top:7px;white-space:pre-wrap;line-height:1.45">${esc(c.propostas||"Nenhuma proposta informada.")}</div>
+         </div>
+
+         ${c.status==="rejeitado" && c.motivoRejeicao ? `
+           <div class="notice error" style="margin-top:12px">
+             <strong>Motivo da negativa:</strong><br>
+             <span style="white-space:pre-wrap">${esc(c.motivoRejeicao)}</span>
+           </div>` : ""}
+
+         <div id="rejeicao-${c.id}" class="hidden" style="margin-top:12px;padding:12px;background:#fff7f7;border:1px solid #efcaca;border-radius:10px">
+           <label>Motivo da negativa da candidatura</label>
+           <textarea id="motivo-${c.id}" placeholder="Explique de forma objetiva por que esta candidatura não foi aceita."></textarea>
+           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+             <button class="btn btn-danger" onclick="confirmarRejeicao('${c.id}')">Confirmar negativa</button>
+             <button class="btn btn-light" onclick="cancelarRejeicao('${c.id}')">Cancelar</button>
+           </div>
+         </div>
+       </div>
+
+       <div style="display:flex;gap:8px;flex-direction:column;min-width:150px">
+         ${c.status==="pendente" ? `
+           <button class="btn btn-success" onclick="aprovar('${c.id}')">Aprovar candidatura</button>
+           <button class="btn btn-danger" onclick="abrirRejeicao('${c.id}')">Rejeitar candidatura</button>
+         ` : `<span class="badge badge-${c.status}" style="text-align:center">${c.status}</span>`}
+       </div>
+     </div>`).join(""):"<p>Nenhuma candidatura.</p>";
+   if(el.resultsReleased) await renderResults();
+ }
+
+
+
+ window.alterarCargoCandidato=async(id)=>{
+   const select=document.getElementById(`cargo-gestor-${id}`);
+   if(!select) return;
+   const novoCargo=select.value;
+   const candidaturas=await S.listCandidaturas();
+   const candidato=candidaturas.find(c=>String(c.id)===String(id));
+   if(!candidato || !novoCargo) return;
+
+   const cargoAtual=candidato.cargos?.[0]?.cargo || candidato.cargo || "";
+   if(novoCargo===cargoAtual){
+     alert("Este já é o cargo atual do estudante.");
+     return;
+   }
+
+   if(!confirm(`Alterar o cargo de ${candidato.nome||"este estudante"} de “${cargoAtual||"não informado"}” para “${novoCargo}”?`)) return;
+
+   try{
+     const numeroAtual=candidato.cargos?.[0]?.numero || candidato.numeroEleitoral || "";
+     await S.updateCandidatura(id,{
+       cargos:[{cargo:novoCargo,numero:numeroAtual}],
+       cargo:novoCargo,
+       cargoAlteradoEm:new Date().toISOString()
+     });
+     alert("Cargo alterado com sucesso. O número eleitoral foi mantido.");
+     await refresh();
+   }catch(err){
+     console.error(err);
+     alert("Não foi possível alterar o cargo: "+(err?.message||err));
+   }
+ };
+
+ window.abrirAmbienteGestor=(id)=>{
+   document.getElementById("menuGestor")?.classList.add("hidden");
+   document.querySelectorAll(".ambiente-gestor").forEach(el=>el.classList.add("hidden"));
+   const alvo=document.getElementById(id);
+   if(alvo){
+     alvo.classList.remove("hidden");
+     alvo.scrollIntoView({behavior:"smooth",block:"start"});
+   }
+ };
+ window.voltarPainelGestor=()=>{
+   document.querySelectorAll(".ambiente-gestor").forEach(el=>el.classList.add("hidden"));
+   document.getElementById("menuGestor")?.classList.remove("hidden");
+   window.scrollTo({top:0,behavior:"smooth"});
+ };
+
+ async function lerArquivoTextoBR(file){
+   const buffer=await file.arrayBuffer();
+
+   // 1) Tenta UTF-8.
+   let texto=new TextDecoder("utf-8",{fatal:false}).decode(buffer);
+
+   // Se houver caracteres de substituição, provavelmente o arquivo veio do Excel em ANSI/Windows-1252.
+   if(texto.includes("\uFFFD")){
+     try{
+       texto=new TextDecoder("windows-1252").decode(buffer);
+     }catch(e){
+       // fallback compatível com navegadores mais antigos
+       texto=new TextDecoder("iso-8859-1").decode(buffer);
+     }
+   }
+
+   // Remove BOM e normaliza quebras de linha.
+   return texto.replace(/^\uFEFF/,"").replace(/\r\n?/g,"\n");
+ }
+
+ let cacheEleitores=[];
+ let sessaoGestorAtual=null;
+ const urnaIdInput=document.getElementById("gestorUrnaId");
+ const buscaLiberacao=document.getElementById("gestorBuscaLiberacao");
+ const infoUrna=document.getElementById("gestorSessaoInfo");
+ const listaLiberacao=document.getElementById("gestorListaLiberacao");
+ function urnaIdValido(){const id=urnaIdInput.value.trim().toLowerCase();return /^[a-z0-9_-]{1,40}$/.test(id)?id:null;}
+ let cacheCargosControle=null, cacheCargosControleEm=0;
+ async function cargosVotaveisControle(){
+   if(!cacheCargosControle || Date.now()-cacheCargosControleEm>120000){
+     cacheCargosControle=await S.getCargosVotaveis();cacheCargosControleEm=Date.now();
+   }
+   return cacheCargosControle;
+ }
+ let controleUrnaConsultando=false;
+ async function atualizarControleUrna(){
+   if(controleUrnaConsultando) return;
+   controleUrnaConsultando=true;
+   try { await atualizarControleUrnaInterno(); } finally { controleUrnaConsultando=false; }
+ }
+ async function atualizarControleUrnaInterno(){
+   const id=urnaIdValido();
+   if(!id){infoUrna.textContent="Identificador inválido: use letras, números, hífen ou sublinhado.";return;}
+   try{
+     let session=await S.getUrnaSession(id);
+     if(session?.status==="liberada"){
+       const voter=await S.getVoter(session.ra);
+       const cargos=await cargosVotaveisControle();
+       if(voter && cargos.length && cargos.every(c=>(voter.votedCargos||[]).includes(c))){
+         await S.encerrarSessao(id,session.token);
+         session=await S.getUrnaSession(id);
+       }
+     }
+     sessaoGestorAtual=session;
+     document.getElementById("gestorCancelarUrna").disabled=session?.status!=="liberada";
+     infoUrna.className="notice "+(session?.status==="liberada"?"warning":"success");
+     infoUrna.textContent=session?.status==="liberada" ? `Urna ${id}: EM VOTAÇÃO — ${cacheEleitores.find(v=>String(v.ra)===session.ra)?.nome||"eleitor autorizado"}. Aguarde concluir.` : `Urna ${id}: LIVRE. ${session?.status==="concluida"?"Votação anterior concluída. Pode liberar o próximo eleitor.":"Aguardando liberação."}`;
+     renderLiberacao();
+   }catch(e){infoUrna.className="notice error";infoUrna.textContent="Falha ao consultar a urna: "+(e.message||e);}
+ }
+ function renderLiberacao(){
+   const termo=buscaLiberacao.value.trim().toLocaleLowerCase("pt-BR");
+   const filtrados=cacheEleitores.filter(v=>!termo || [v.nome,v.ra,v.turma].some(x=>String(x||"").toLocaleLowerCase("pt-BR").includes(termo))).slice(0,80);
+   listaLiberacao.innerHTML=filtrados.length?`<div style="overflow:auto"><table><thead><tr><th>Eleitor</th><th>Turma</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${filtrados.map(v=>{
+     const voted=Array.isArray(v.votedCargos)?v.votedCargos:[];
+     const status=v.ativo===false?"Inativo":voted.length?`Participou de ${voted.length} cargo(s)`:"Ainda não votou";
+     const ocupado=sessaoGestorAtual?.status==="liberada";
+     return `<tr><td><b>${esc(v.nome)}</b><br><small>${esc(v.ra)}</small></td><td>${esc(v.turma)}</td><td>${esc(status)}</td><td><button class="btn btn-success" ${ocupado||v.ativo===false?"disabled":""} data-liberar-ra="${esc(v.ra)}">Liberar</button></td></tr>`;
+   }).join("")}</tbody></table></div>`:"<p>Nenhum eleitor encontrado.</p>";
+   listaLiberacao.querySelectorAll("[data-liberar-ra]").forEach(b=>b.addEventListener("click",async()=>{
+     const id=urnaIdValido(),ra=b.dataset.liberarRa;
+     if(!id || !confirm(`Liberar o eleitor de RA ${ra} na urna ${id}?`))return;
+     b.disabled=true;
+     try{await S.liberarEleitor(id,ra);await atualizarControleUrna();}
+     catch(e){alert("Não foi possível liberar: "+(e.message||e));await atualizarControleUrna();}
+   }));
+ }
+ buscaLiberacao.addEventListener("input",renderLiberacao);
+ urnaIdInput.addEventListener("change",atualizarControleUrna);
+ document.getElementById("gestorAtualizarUrna").onclick=atualizarControleUrna;
+ document.getElementById("gestorCancelarUrna").onclick=async()=>{
+   const id=urnaIdValido();
+   if(!id || sessaoGestorAtual?.status!=="liberada") return;
+   if(!confirm("ATENÇÃO: confirme que ninguém está votando na "+id+". Cancelar a liberação interrompe a sessão, mas NÃO apaga votos já confirmados. Continuar?"))return;
+   try{await S.cancelarSessao(id);await atualizarControleUrna();}
+   catch(e){alert("Não foi possível cancelar: "+(e.message||e));}
+ };
+ // Consultar a sessão custa apenas um documento; não recarregar a coleção inteira a cada 3 segundos.
+ let ultimaListaEleitoresUrna=0, carregandoListaEleitoresUrna=false;
+ async function atualizarListaEleitoresUrna(force=false){
+   if(carregandoListaEleitoresUrna || (!force && Date.now()-ultimaListaEleitoresUrna<120000)) return;
+   carregandoListaEleitoresUrna=true;
+   try { cacheEleitores=await S.listVoters(); ultimaListaEleitoresUrna=Date.now(); renderLiberacao(); }
+   catch(e){console.error("Falha ao atualizar eleitores:",e);}
+   finally{carregandoListaEleitoresUrna=false;}
+ }
+ setInterval(()=>{
+   if(document.hidden || document.getElementById("ambienteUrnas").classList.contains("hidden"))return;
+   atualizarListaEleitoresUrna();
+   atualizarControleUrna().catch(console.error);
+ },8000);
+ const abrirAmbienteGestorAnterior=window.abrirAmbienteGestor;
+ window.abrirAmbienteGestor=(id)=>{
+   abrirAmbienteGestorAnterior(id);
+   if(id==="ambienteUrnas") { atualizarListaEleitoresUrna(true); atualizarControleUrna().catch(console.error); }
+ };
+
+
+ function renderEleitores(voters){
+   cacheEleitores=[...voters].sort((a,b)=>(a.nome||"").localeCompare(b.nome||"","pt-BR"));
+   const termo=(document.getElementById("buscaEleitor")?.value||"").trim().toLowerCase();
+   const lista=cacheEleitores.filter(v=>{
+     if(!termo) return true;
+     return [v.nome,v.ra,v.turma].some(x=>String(x||"").toLowerCase().includes(termo));
+   });
+
+   const box=document.getElementById("eleitoresList");
+   if(!lista.length){
+     box.innerHTML="<p class='muted'>Nenhum eleitor encontrado.</p>";
+     return;
+   }
+
+   box.innerHTML=`
+     <div style="overflow:auto">
+       <table>
+         <thead><tr><th>RA</th><th>Nome</th><th>Turma</th><th>Votou em</th><th>Ação</th></tr></thead>
+         <tbody>
+           ${lista.map(v=>`
+             <tr>
+               <td>${esc(v.ra||v.id||"")}</td>
+               <td><strong>${esc(v.nome||"")}</strong></td>
+               <td>${esc(v.turma||"")}</td>
+               <td>${Array.isArray(v.votedCargos) && v.votedCargos.length ? v.votedCargos.map(esc).join("<br>") : "<span class='muted'>Nenhum cargo ainda</span>"}</td>
+               <td><button class="btn btn-danger small" onclick="excluirEleitor('${String(v.ra||v.id||"").replaceAll("'","&#039;")}')">Excluir</button></td>
+             </tr>`).join("")}
+         </tbody>
+       </table>
+     </div>`;
+ }
+
+ document.getElementById("buscaEleitor").addEventListener("input",()=>renderEleitores(cacheEleitores));
+
+ document.getElementById("addEleitor").onclick=async()=>{
+   const ra=document.getElementById("eleitorRA").value.trim();
+   const nome=document.getElementById("eleitorNome").value.trim();
+   const turma=document.getElementById("eleitorTurma").value.trim();
+
+   if(!ra || !nome || !turma){
+     eleitorMsg("Preencha RA, nome e turma.",false);
+     return;
+   }
+
+   try{
+     await S.addVoter({ra,nome,turma,ativo:true});
+     document.getElementById("eleitorRA").value="";
+     document.getElementById("eleitorNome").value="";
+     document.getElementById("eleitorTurma").value="";
+     eleitorMsg("Eleitor cadastrado com sucesso.",true);
+     await refresh();
+   }catch(err){
+     console.error(err);
+     eleitorMsg("Não foi possível cadastrar o eleitor: "+(err.message||err),false);
+   }
+ };
+
+ window.excluirEleitor=async(ra)=>{
+   if(!confirm(`Excluir o eleitor de RA ${ra}?`)) return;
+   try{
+     await S.deleteVoter(ra);
+     await refresh();
+   }catch(err){
+     alert("Não foi possível excluir o eleitor.");
+   }
+ };
+
+ document.getElementById("importarEleitores").onclick=async()=>{
+   const file=document.getElementById("csvEleitores").files?.[0];
+   if(!file){
+     eleitorMsg("Escolha um arquivo CSV.",false);
+     return;
+   }
+
+   try{
+     const text=await lerArquivoTextoBR(file);
+     const linhas=text.split("\n").filter(l=>l.trim());
+     if(linhas.length<2) throw new Error("O CSV não possui linhas de dados.");
+
+     const delimiter=linhas[0].includes(";") ? ";" : ",";
+     const parseLine=line=>{
+       const out=[]; let cur="", quoted=false;
+       for(let i=0;i<line.length;i++){
+         const ch=line[i];
+         if(ch==='"'){
+           if(quoted && line[i+1]==='"'){ cur+='"'; i++; }
+           else quoted=!quoted;
+         }else if(ch===delimiter && !quoted){
+           out.push(cur.trim()); cur="";
+         }else cur+=ch;
+       }
+       out.push(cur.trim());
+       return out;
+     };
+
+     const headers=parseLine(linhas[0]).map(h=>h.trim().toLowerCase());
+     const idxRA=headers.findIndex(h=>["ra","r.a.","r.a","matricula","matrícula"].includes(h));
+     const idxNome=headers.findIndex(h=>["nome","nome completo","aluno","estudante"].includes(h));
+     const idxTurma=headers.findIndex(h=>["turma","classe","sala"].includes(h));
+
+     if(idxRA<0 || idxNome<0 || idxTurma<0){
+       throw new Error("Use cabeçalhos RA, NOME e TURMA.");
+     }
+
+     const itens=[];
+     for(const linha of linhas.slice(1)){
+       const c=parseLine(linha);
+       const ra=(c[idxRA]||"").trim();
+       const nome=(c[idxNome]||"").trim();
+       const turma=(c[idxTurma]||"").trim();
+       if(ra && nome && turma) itens.push({ra,nome,turma,ativo:true});
+     }
+
+     if(!itens.length) throw new Error("Nenhum eleitor válido foi encontrado.");
+     await S.addVoters(itens);
+     document.getElementById("csvEleitores").value="";
+     eleitorMsg(`${itens.length} eleitor(es) importado(s) com sucesso.`,true);
+     await refresh();
+   }catch(err){
+     console.error(err);
+     eleitorMsg("Erro ao importar CSV: "+(err.message||err),false);
+   }
+ };
+
+ function eleitorMsg(texto,ok){
+   const m=document.getElementById("eleitorMsg");
+   m.className="notice "+(ok?"success":"error");
+   m.textContent=texto;
+ }
+
+ function esc(v){
+   return String(v??"")
+     .replaceAll("&","&amp;")
+     .replaceAll("<","&lt;")
+     .replaceAll(">","&gt;")
+     .replaceAll('"',"&quot;")
+     .replaceAll("'","&#039;");
+ }
+
+ window.aprovar=async(id)=>{
+   if(!confirm("Aprovar esta candidatura?")) return;
+   await S.updateCandidatura(id,{
+     status:"aprovado",
+     motivoRejeicao:"",
+     analisadoEm:new Date().toISOString()
+   });
+   await refresh();
+ }
+
+ window.abrirRejeicao=(id)=>{
+   document.getElementById("rejeicao-"+id).classList.remove("hidden");
+   setTimeout(()=>document.getElementById("motivo-"+id).focus(),50);
+ }
+
+ window.cancelarRejeicao=(id)=>{
+   const box=document.getElementById("rejeicao-"+id);
+   const campo=document.getElementById("motivo-"+id);
+   if(campo) campo.value="";
+   if(box) box.classList.add("hidden");
+ }
+
+ window.confirmarRejeicao=async(id)=>{
+   const campo=document.getElementById("motivo-"+id);
+   const motivo=(campo?.value||"").trim();
+   if(!motivo){
+     alert("Informe o motivo da negativa antes de confirmar.");
+     campo?.focus();
+     return;
+   }
+   if(motivo.length<10){
+     alert("Descreva o motivo com um pouco mais de detalhe.");
+     campo?.focus();
+     return;
+   }
+
+   await S.updateCandidatura(id,{
+     status:"rejeitado",
+     motivoRejeicao:motivo,
+     analisadoEm:new Date().toISOString()
+   });
+   await refresh();
+ }
+ async function renderResults(){
+   locked.classList.add("hidden"); results.classList.remove("hidden");
+   const votos=await S.listVotes(), cargos=await S.getCargos(), cand=await S.listCandidaturas();
+   let html="";
+   for(const cargo of cargos){
+     const vs=votos.filter(v=>v.cargo===cargo);
+     const aprov=[];
+     cand.filter(c=>c.status==="aprovado").forEach(c=>(c.cargos||[]).forEach(x=>{if(x.cargo===cargo) aprov.push({id:c.id,nome:c.nome,numero:x.numero})}));
+     const counts={};
+     aprov.forEach(c=>counts[c.id]=0);
+     vs.filter(v=>v.tipo==="valido").forEach(v=>counts[v.candidatoId]=(counts[v.candidatoId]||0)+1);
+     const branco=vs.filter(v=>v.tipo==="branco").length, nulo=vs.filter(v=>v.tipo==="nulo").length;
+     const sorted=[...aprov].sort((a,b)=>(counts[b.id]||0)-(counts[a.id]||0));
+     const max=Math.max(1,...sorted.map(c=>counts[c.id]||0));
+     html+=`<h3>${cargo}</h3>`;
+     if(!sorted.length) html+="<p class='muted'>Nenhum candidato aprovado.</p>";
+     else sorted.forEach((c,i)=>{
+       const n=counts[c.id]||0, pct=(n/max*100).toFixed(0);
+       html+=`<div style="margin:10px 0"><strong>${i===0?"🏆 ":""}${c.numero} • ${c.nome}</strong> — ${n} voto(s)
+       <div class="result-bar"><div style="width:${pct}%"></div></div></div>`;
+     });
+     html+=`<p class="small">Brancos: ${branco} • Nulos: ${nulo} • Total: ${vs.length}</p><hr>`;
+   }
+   results.innerHTML=html;
+ }
+ document.getElementById("filtroCandidaturasTela").addEventListener("change",refresh);
+ await refresh();
+ } // /* fim iniciarPainel */
+})();
+</script></body></html>

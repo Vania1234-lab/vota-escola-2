@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Resultado da Eleição • Vota Escola</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body{background:#f2f4f6}
+    .hero-result{
+      background:linear-gradient(135deg,#24313d,#395268);
+      color:white;border-radius:18px;padding:28px;margin-bottom:20px
+    }
+    .hero-result h1{margin:0 0 8px;font-size:clamp(1.8rem,4vw,3rem)}
+    .hero-result p{margin:0;opacity:.9}
+    .section-title{margin:28px 0 14px}
+    .chapa-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+      gap:14px
+    }
+    .winner-card{
+      background:white;border:1px solid #dde3e8;border-radius:16px;
+      padding:16px;display:flex;gap:14px;align-items:center
+    }
+    .winner-photo{
+      width:82px;height:98px;object-fit:cover;border-radius:12px;
+      background:#e9edf0;flex:0 0 auto
+    }
+    .winner-role{font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;color:#66717c;font-weight:800}
+    .winner-name{font-size:1.15rem;font-weight:900;margin-top:3px}
+    .winner-number{font-size:1.55rem;font-weight:900}
+    .cargo-card{
+      background:white;border:1px solid #dde3e8;border-radius:16px;
+      padding:18px;margin-bottom:16px
+    }
+    .cargo-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;flex-wrap:wrap}
+    .candidate-result{
+      display:grid;grid-template-columns:56px 1fr auto;
+      gap:12px;align-items:center;padding:12px 0;border-top:1px solid #edf0f2
+    }
+    .candidate-result:first-of-type{border-top:none}
+    .candidate-result img{
+      width:56px;height:68px;object-fit:cover;border-radius:9px;background:#edf0f2
+    }
+    .bar{
+      height:10px;background:#e9edf0;border-radius:999px;overflow:hidden;margin-top:7px
+    }
+    .bar > span{
+      display:block;height:100%;background:#526b80;border-radius:999px
+    }
+    .pct{font-size:1.1rem;font-weight:900;white-space:nowrap;text-align:right}
+    .small-result{font-size:.86rem;color:#697681}
+    .winner-badge{
+      display:inline-block;background:#e8f5ea;color:#236531;
+      border-radius:999px;padding:3px 8px;font-size:.72rem;font-weight:900;margin-left:6px
+    }
+    .tie-badge{
+      display:inline-block;background:#fff4d8;color:#795c00;
+      border-radius:999px;padding:3px 8px;font-size:.72rem;font-weight:900;margin-left:6px
+    }
+    .summary-row{
+      display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;color:#596671;font-size:.9rem
+    }
+    .hidden{display:none!important}
+    @media(max-width:600px){
+      .candidate-result{grid-template-columns:48px 1fr}
+      .candidate-result img{width:48px;height:58px}
+      .pct{grid-column:2;text-align:left}
+    }
+  
+    .turnout-card{
+      background:white;border:1px solid #dde3e8;border-radius:18px;
+      padding:24px;margin-top:18px
+    }
+    .turnout-grid{
+      display:grid;grid-template-columns:minmax(220px,320px) 1fr;
+      gap:30px;align-items:center
+    }
+    .pie-wrap{display:grid;place-items:center}
+    .pie{
+      --p:0;
+      width:220px;height:220px;border-radius:50%;
+      background:conic-gradient(#2d6fb7 calc(var(--p)*1%), #e3e8ed 0);
+      display:grid;place-items:center;position:relative
+    }
+    .pie::after{
+      content:"";width:142px;height:142px;border-radius:50%;
+      background:white;position:absolute
+    }
+    .pie-center{
+      position:relative;z-index:2;text-align:center
+    }
+    .pie-center strong{display:block;font-size:2rem}
+    .progress-track{
+      width:100%;height:24px;border-radius:999px;background:#e3e8ed;
+      overflow:hidden;margin:12px 0 8px
+    }
+    .progress-fill{
+      height:100%;width:0%;background:#2d6fb7;border-radius:999px;
+      transition:width .45s ease
+    }
+    .turnout-numbers{
+      display:grid;grid-template-columns:repeat(3,minmax(120px,1fr));
+      gap:10px;margin-top:18px
+    }
+    .turnout-stat{
+      background:#f6f8fa;border-radius:12px;padding:14px
+    }
+    .turnout-stat span{display:block;color:#687582;font-size:.85rem}
+    .turnout-stat strong{font-size:1.45rem}
+    .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:.9rem}
+    .legend-item{display:flex;align-items:center;gap:7px}
+    .legend-dot{width:12px;height:12px;border-radius:50%}
+    .dot-voted{background:#2d6fb7}
+    .dot-pending{background:#e3e8ed;border:1px solid #cdd4da}
+    @media(max-width:720px){
+      .turnout-grid{grid-template-columns:1fr}
+      .turnout-numbers{grid-template-columns:1fr}
+      .pie{width:190px;height:190px}
+      .pie::after{width:122px;height:122px}
+    }
+
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="ballot">🗳️</span> Vota Escola</div>
+</header>
+
+<main class="container">
+  <section class="hero-result">
+    <h1>Resultado da Eleição</h1>
+    <p id="electionName">Grêmio Estudantil</p>
+  </section>
+
+  <div id="loading" class="card">
+    <strong>Carregando resultado...</strong>
+  </div>
+
+  <div id="closed" class="hidden">
+    <div class="card">
+      <div class="notice">
+        <strong>Resultado ainda não divulgado.</strong><br>
+        Enquanto a apuração permanece bloqueada, você pode acompanhar apenas a participação dos eleitores.
+      </div>
+    </div>
+
+    <section class="turnout-card">
+      <h2 style="margin-top:0">📈 Participação na votação</h2>
+      <p class="muted">Este painel mostra somente quantos eleitores já participaram. Não revela votos nem candidatos escolhidos.</p>
+
+      <div class="turnout-grid">
+        <div class="pie-wrap">
+          <div id="pieParticipacao" class="pie" style="--p:0">
+            <div class="pie-center">
+              <strong id="pctPizza">0%</strong>
+              <span>participação</span>
+            </div>
+          </div>
+
+          <div class="legend">
+            <div class="legend-item"><span class="legend-dot dot-voted"></span> Já votaram</div>
+            <div class="legend-item"><span class="legend-dot dot-pending"></span> Ainda faltam</div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="margin-top:0">Comparecimento</h3>
+          <div style="font-size:1.15rem">
+            <strong id="participacaoTexto">0%</strong> dos eleitores cadastrados já participaram.
+          </div>
+
+          <div class="progress-track">
+            <div id="barraParticipacao" class="progress-fill"></div>
+          </div>
+          <div class="small-result" id="faltamTexto">Carregando participação...</div>
+
+          <div class="turnout-numbers">
+            <div class="turnout-stat">
+              <span>Eleitores cadastrados</span>
+              <strong id="totalEleitores">0</strong>
+            </div>
+            <div class="turnout-stat">
+              <span>Já participaram</span>
+              <strong id="eleitoresVotaram">0</strong>
+            </div>
+            <div class="turnout-stat">
+              <span>Ainda faltam</span>
+              <strong id="eleitoresFaltam">0</strong>
+            </div>
+          </div>
+
+          <p class="small-result" style="margin-top:14px">
+            Atualização automática a cada 15 segundos.
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="content" class="hidden">
+    <h2 class="section-title">🏆 Chapa formada</h2>
+    <p class="muted">Vencedores de cada cargo do Grêmio Estudantil.</p>
+    <div id="chapa" class="chapa-grid"></div>
+
+    <h2 class="section-title">📊 Resultado por cargo</h2>
+    <p class="muted">
+      O percentual de cada candidato é calculado sobre os <strong>votos válidos do cargo</strong>.
+      Votos brancos e nulos aparecem separadamente.
+    </p>
+    <div id="porCargo"></div>
+  </div>
+</main>
+
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="core.js"></script>
+<script>
+(async()=>{
+  const S=VotaEscola.Store;
+  try{
+    await S.init();
+
+    const election=await S.getElection();
+    document.getElementById("electionName").textContent=
+      election.name||"Eleição do Grêmio Estudantil";
+
+    if(!election.resultsReleased){
+      document.getElementById("loading").classList.add("hidden");
+      document.getElementById("closed").classList.remove("hidden");
+      await atualizarParticipacao();
+      setInterval(()=>{if(!document.hidden) atualizarParticipacao();},120000);
+      return;
+    }
+
+    const publico=await S.getPublicResults();
+
+    if(!publico || publico.released!==true){
+      document.getElementById("loading").innerHTML=
+        `<div class="notice error"><strong>O resultado foi liberado, mas a apuração pública ainda não foi gerada.</strong><br>
+        Entre no Painel do Gestor e clique novamente em <strong>Salvar configuração</strong>.</div>`;
+      return;
+    }
+
+    document.getElementById("electionName").textContent=
+      publico.electionName||election.name||"Eleição do Grêmio Estudantil";
+
+    const dados=Array.isArray(publico.cargos)?publico.cargos:[];
+    renderChapa(dados);
+    renderCargos(dados);
+
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("content").classList.remove("hidden");
+  }catch(err){
+    console.error(err);
+    document.getElementById("loading").innerHTML=
+      `<div class="notice error"><strong>Não foi possível carregar os resultados.</strong><br>${esc(err?.message||err)}</div>`;
+  }
+
+
+  async function atualizarParticipacao(){
+    try{
+      const voters=await S.listVoters();
+      const total=voters.length;
+
+      // Conta como participação quando o RA já confirmou ao menos um cargo.
+      const votaram=voters.filter(v=>
+        Array.isArray(v.votedCargos) && v.votedCargos.length>0
+      ).length;
+
+      const faltam=Math.max(0,total-votaram);
+      const pct=total ? (votaram/total*100) : 0;
+      const pctTexto=pct.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"%";
+
+      document.getElementById("totalEleitores").textContent=total;
+      document.getElementById("eleitoresVotaram").textContent=votaram;
+      document.getElementById("eleitoresFaltam").textContent=faltam;
+      document.getElementById("pctPizza").textContent=pctTexto;
+      document.getElementById("participacaoTexto").textContent=pctTexto;
+
+      document.getElementById("pieParticipacao").style.setProperty("--p",Math.min(100,pct));
+      document.getElementById("barraParticipacao").style.width=Math.min(100,pct)+"%";
+
+      document.getElementById("faltamTexto").textContent=
+        faltam===0 && total>0
+          ? "Todos os eleitores cadastrados já participaram."
+          : `Ainda faltam ${faltam} de ${total} eleitor(es) cadastrado(s).`;
+    }catch(err){
+      console.error("Erro ao carregar participação:",err);
+      document.getElementById("faltamTexto").textContent=
+        "Não foi possível atualizar a participação neste momento.";
+    }
+  }
+
+  function renderChapa(dados){
+    const el=document.getElementById("chapa");
+    const cards=[];
+
+    dados.forEach(d=>{
+      const ids=Array.isArray(d.vencedores)?d.vencedores:[];
+      const vencedores=(d.candidatos||[]).filter(c=>ids.map(String).includes(String(c.id)));
+
+      if(!vencedores.length){
+        cards.push(`
+          <div class="winner-card">
+            <div class="winner-photo" style="display:grid;place-items:center;font-size:2rem">—</div>
+            <div>
+              <div class="winner-role">${esc(d.cargo)}</div>
+              <div class="winner-name">Sem vencedor definido</div>
+              <div class="small-result">${(d.validos||0)===0?"Nenhum voto válido registrado.":"Resultado indisponível."}</div>
+            </div>
+          </div>`);
+        return;
+      }
+
+      vencedores.forEach(v=>{
+        cards.push(`
+          <div class="winner-card">
+            ${v.foto ? `<img class="winner-photo" src="${v.foto}" alt="Foto de ${esc(v.nome)}">` : `<div class="winner-photo" style="display:grid;place-items:center;font-size:2rem">👤</div>`}
+            <div>
+              <div class="winner-role">${esc(d.cargo)}</div>
+              <div class="winner-name">${esc(v.nome)} ${vencedores.length>1?'<span class="tie-badge">EMPATE</span>':''}</div>
+              <div class="winner-number">Nº ${esc(v.numero)}</div>
+              <div class="small-result">${v.votos||0} voto(s) • ${fmt(v.percentual)}%</div>
+            </div>
+          </div>`);
+      });
+    });
+
+    el.innerHTML=cards.join("");
+  }
+
+  function renderCargos(dados){
+    const el=document.getElementById("porCargo");
+
+    el.innerHTML=dados.map(d=>{
+      const ids=Array.isArray(d.vencedores)?d.vencedores.map(String):[];
+      return `
+      <section class="cargo-card">
+        <div class="cargo-head">
+          <div>
+            <h3 style="margin:0">${esc(d.cargo)}</h3>
+            <div class="small-result">${d.total||0} voto(s) registrado(s) neste cargo</div>
+          </div>
+          <div class="small-result">${(d.candidatos||[]).length} candidato(s)</div>
+        </div>
+
+        <div style="margin-top:12px">
+          ${(d.candidatos||[]).length ? (d.candidatos||[]).map(c=>{
+            const isWinner=ids.includes(String(c.id));
+            const tied=ids.length>1 && isWinner;
+            return `
+              <div class="candidate-result">
+                ${c.foto ? `<img src="${c.foto}" alt="Foto de ${esc(c.nome)}">` : `<div style="width:56px;height:68px;border-radius:9px;background:#edf0f2;display:grid;place-items:center;font-size:1.5rem">👤</div>`}
+                <div>
+                  <strong>Nº ${esc(c.numero)} — ${esc(c.nome)}</strong>
+                  ${isWinner ? (tied?'<span class="tie-badge">EMPATE EM 1º</span>':'<span class="winner-badge">ELEITO(A)</span>') : ''}
+                  <div class="small-result">${esc(c.turma||"")}</div>
+                  <div class="bar"><span style="width:${Math.min(100,Number(c.percentual||0))}%"></span></div>
+                  <div class="small-result">${c.votos||0} voto(s) válido(s)</div>
+                </div>
+                <div class="pct">${fmt(c.percentual)}%</div>
+              </div>`;
+          }).join("") : `<div class="notice">Nenhum candidato aprovado para este cargo.</div>`}
+        </div>
+
+        <div class="summary-row">
+          <span><strong>Válidos:</strong> ${d.validos||0}</span>
+          <span><strong>Brancos:</strong> ${d.brancos||0}</span>
+          <span><strong>Nulos:</strong> ${d.nulos||0}</span>
+          <span><strong>Total:</strong> ${d.total||0}</span>
+        </div>
+      </section>`;
+    }).join("");
+  }
+
+  function fmt(v){
+    return Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
+  }
+  function esc(v){
+    return String(v??"")
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+})();
+</script>
+</body>
+</html>

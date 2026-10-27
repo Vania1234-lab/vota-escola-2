@@ -1,0 +1,296 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vota Escola</title><link rel="stylesheet" href="./styles.css?v=37">
+<style id="vota-escola-design-v33">
+:root{
+  --ve-blue:#15539a;
+  --ve-blue-dark:#0d3e73;
+  --ve-blue-soft:#eaf3ff;
+  --ve-bg:#f4f7fb;
+  --ve-card:#ffffff;
+  --ve-text:#182433;
+  --ve-muted:#66788a;
+  --ve-border:#dbe4ee;
+  --ve-success:#158253;
+  --ve-danger:#c83c3c;
+  --ve-warning:#c98a11;
+  --ve-shadow:0 18px 45px rgba(22,70,113,.12);
+  --ve-radius:22px;
+}
+*{box-sizing:border-box}
+html{background:var(--ve-bg)}
+body{
+  margin:0!important;
+  min-height:100vh;
+  font-family:Inter,Segoe UI,Roboto,Arial,sans-serif!important;
+  color:var(--ve-text)!important;
+  background:
+    radial-gradient(circle at 10% 0%,rgba(30,105,183,.08),transparent 28%),
+    linear-gradient(180deg,#f8fbff 0%,#eef4fa 100%)!important;
+  font-size:16px!important;
+}
+header{
+  background:linear-gradient(135deg,var(--ve-blue),var(--ve-blue-dark))!important;
+  color:#fff!important;
+  min-height:68px;
+  padding:0 28px!important;
+  display:flex!important;
+  align-items:center!important;
+  box-shadow:0 8px 26px rgba(13,62,115,.18)!important;
+}
+.brand{
+  color:#fff!important;
+  font-size:1.15rem!important;
+  font-weight:800!important;
+  letter-spacing:.01em;
+}
+.container,.candidate-wrap,.candidate-main,.done-wrap,.urna-shell{
+  width:min(1160px,94%)!important;
+  margin:30px auto 64px!important;
+}
+h1,h2,h3{
+  font-family:Inter,Segoe UI,Roboto,Arial,sans-serif!important;
+  color:#102a43!important;
+  letter-spacing:-.02em;
+}
+h1{font-size:clamp(2rem,4vw,3.2rem)!important}
+h2{font-size:1.55rem!important}
+h3{font-size:1.08rem!important}
+p{line-height:1.55}
+.card,.form-card,.step-card,.turnout-card,.cargo-card,.done-card{
+  background:rgba(255,255,255,.98)!important;
+  border:1px solid var(--ve-border)!important;
+  border-radius:var(--ve-radius)!important;
+  box-shadow:var(--ve-shadow)!important;
+}
+.card{padding:24px!important;margin-bottom:20px!important}
+.hero,.hero-card,.candidate-hero,.hero-result{
+  background:linear-gradient(135deg,#174f8f,#0d3f76)!important;
+  color:#fff!important;
+  border-radius:26px!important;
+  padding:30px!important;
+  box-shadow:0 20px 45px rgba(15,70,126,.20)!important;
+  border:none!important;
+}
+.hero h1,.hero h2,.hero-card h1,.candidate-hero h1,.hero-result h1{
+  color:#fff!important;
+}
+.hero p,.hero-card p,.candidate-hero p,.hero-result p{color:rgba(255,255,255,.9)!important}
+.grid{display:grid!important;gap:16px!important}
+.grid-2,.grid2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+label{
+  display:block!important;
+  font-weight:750!important;
+  color:#26384a!important;
+  margin:10px 0 7px!important;
+}
+input,select,textarea{
+  width:100%!important;
+  min-height:46px!important;
+  padding:11px 13px!important;
+  border:1px solid #cbd8e5!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  color:#172536!important;
+  font:inherit!important;
+  outline:none!important;
+  transition:.18s ease!important;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--ve-blue)!important;
+  box-shadow:0 0 0 4px rgba(21,83,154,.12)!important;
+}
+input[readonly],.readonly{background:#f3f6f9!important;color:#44586b!important}
+textarea{min-height:135px!important;resize:vertical!important}
+input[type="checkbox"]{
+  width:18px!important;min-height:18px!important;height:18px!important;
+  padding:0!important;border-radius:5px!important
+}
+button,.btn,.btn-elegant,.submit-btn{
+  border:none!important;
+  border-radius:12px!important;
+  padding:12px 17px!important;
+  min-height:44px!important;
+  font:inherit!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+  text-decoration:none!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  transition:.18s ease!important;
+}
+button:hover,.btn:hover,.btn-elegant:hover,.submit-btn:hover{transform:translateY(-1px)}
+.btn-primary,.primary,.submit-btn{
+  background:linear-gradient(135deg,#1b63b4,#124b89)!important;
+  color:#fff!important;
+  box-shadow:0 8px 20px rgba(21,83,154,.18)!important;
+}
+.btn-light,.secondary{background:#edf3f8!important;color:#17334e!important}
+.btn-success{background:#198754!important;color:#fff!important}
+.btn-danger{background:#c43b3b!important;color:#fff!important}
+.notice,.notice-box{
+  border-radius:14px!important;
+  padding:13px 15px!important;
+  margin:12px 0!important;
+  background:#edf5ff!important;
+  border:1px solid #d2e4f8!important;
+  border-left:5px solid var(--ve-blue)!important;
+  color:#24405d!important;
+}
+.notice.success,.notice-box.ok{background:#eaf8ef!important;border-left-color:var(--ve-success)!important}
+.notice.error,.notice-box.err{background:#fff0f0!important;border-left-color:var(--ve-danger)!important;color:#742525!important}
+.notice.warning{background:#fff7e4!important;border-left-color:var(--ve-warning)!important}
+.small,.help{font-size:.9rem!important;color:var(--ve-muted)!important}
+.muted{color:var(--ve-muted)!important}
+.hidden{display:none!important}
+hr{border:0!important;border-top:1px solid #e4ebf2!important;margin:24px 0!important}
+.stat{
+  background:#fff!important;border:1px solid var(--ve-border)!important;
+  border-radius:18px!important;padding:18px 20px!important;box-shadow:var(--ve-shadow)!important
+}
+.stat span{display:block!important;color:var(--ve-muted)!important;margin-bottom:5px!important}
+.stat strong{font-size:2rem!important;color:#122d46!important}
+.panel-actions{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:20px!important;margin-top:26px!important
+}
+.panel-tile{
+  min-height:180px!important;
+  background:linear-gradient(180deg,#fff,#f9fbfd)!important;
+  border:1px solid #d4dee8!important;
+  border-radius:24px!important;
+  box-shadow:var(--ve-shadow)!important;
+  padding:24px!important;
+  display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:center!important;
+  text-align:center!important;cursor:pointer!important
+}
+.panel-tile:hover{border-color:var(--ve-blue)!important;transform:translateY(-3px)!important}
+.panel-tile .icon{font-size:2.4rem!important;margin-bottom:10px!important}
+.panel-tile .title{font-size:1.08rem!important;font-weight:900!important;color:#15314c!important}
+.panel-tile .sub{color:var(--ve-muted)!important;margin-top:6px!important}
+.candidate-row{
+  display:flex!important;gap:16px!important;align-items:flex-start!important;
+  background:#fff!important;border:1px solid var(--ve-border)!important;
+  border-radius:18px!important;padding:16px!important;margin-bottom:14px!important
+}
+.avatar{
+  width:78px!important;height:96px!important;border-radius:13px!important;
+  overflow:hidden!important;background:#edf1f5!important;display:grid!important;place-items:center!important
+}
+.avatar img{width:100%!important;height:100%!important;object-fit:cover!important}
+.badge{display:inline-block!important;border-radius:999px!important;padding:4px 9px!important;font-size:.78rem!important;font-weight:900!important}
+.badge-aprovado{background:#e6f6eb!important;color:#226d3e!important}
+.badge-pendente{background:#fff3d3!important;color:#7a5b00!important}
+.badge-rejeitado{background:#ffe7e7!important;color:#972b2b!important}
+table{
+  width:100%!important;border-collapse:separate!important;border-spacing:0!important;
+  overflow:hidden!important;border:1px solid var(--ve-border)!important;border-radius:14px!important
+}
+th,td{padding:12px!important;border-bottom:1px solid #e8eef4!important;text-align:left!important}
+th{background:#f4f7fa!important;color:#33495e!important}
+tr:last-child td{border-bottom:none!important}
+
+/* Candidate-specific */
+.step-card{padding:24px!important;margin-bottom:18px!important}
+.step-title{display:flex!important;align-items:center!important;gap:10px!important;margin-bottom:16px!important}
+.step-number,.section-title .n{
+  width:36px!important;height:36px!important;border-radius:50%!important;
+  background:var(--ve-blue)!important;color:#fff!important;display:grid!important;
+  place-items:center!important;font-weight:900!important
+}
+.step-title h2,.section-title h2{margin:0!important}
+.lookup-row{display:grid!important;grid-template-columns:1fr auto!important;gap:12px!important;align-items:end!important}
+.candidate-confirm,.number-card{
+  background:#edf5ff!important;border:1px solid #d1e3f7!important;
+  border-radius:14px!important;padding:14px!important;color:#274665!important
+}
+.photo-grid,.photo-row{display:grid!important;grid-template-columns:155px 1fr!important;gap:20px!important;align-items:start!important}
+.photo-box,.preview-shell{
+  width:155px!important;height:190px!important;border-radius:18px!important;
+  background:#f2f5f8!important;border:1px dashed #b9c8d6!important;
+  display:grid!important;place-items:center!important;overflow:hidden!important;
+  color:#738498!important;text-align:center!important;padding:10px!important
+}
+.photo-box img,.preview-shell img{width:100%!important;height:100%!important;object-fit:cover!important}
+.footer-actions,.actions{display:flex!important;justify-content:flex-end!important;gap:12px!important;margin-top:18px!important}
+
+/* Results */
+.winner-card{
+  background:#fff!important;border:1px solid var(--ve-border)!important;
+  border-radius:18px!important;padding:16px!important;box-shadow:0 8px 22px rgba(24,70,109,.08)!important
+}
+.cargo-card{padding:20px!important;margin-bottom:18px!important}
+.bar,.progress-track{background:#e5ebf1!important;border-radius:999px!important;overflow:hidden!important}
+.bar>span,.progress-fill{background:linear-gradient(90deg,#1961ad,#2b82d6)!important}
+
+/* Urna */
+.urna{
+  background:linear-gradient(180deg,#ddd8cc,#cbc5b8)!important;
+  border:1px solid #aaa!important;border-radius:20px!important;
+  padding:22px!important;display:grid!important;
+  grid-template-columns:minmax(0,1.5fr) minmax(300px,.75fr)!important;
+  gap:22px!important;box-shadow:0 22px 55px rgba(0,0,0,.18)!important
+}
+.tela{
+  background:#f8f8f3!important;border:2px solid #3f4347!important;
+  border-radius:14px!important;min-height:500px!important;padding:24px!important
+}
+.teclado{background:#2f3439!important;border-radius:14px!important;padding:18px!important}
+.teclas-grid{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:10px!important}
+.tecla{
+  background:#17191c!important;color:#fff!important;border:2px solid #555!important;
+  border-radius:8px!important;padding:16px!important;font-size:1.35rem!important;font-weight:900!important
+}
+.acoes{display:grid!important;grid-template-columns:1fr 1fr 1.2fr!important;gap:10px!important;margin-top:14px!important}
+.branco{background:#f4f4f4!important;color:#111!important}
+.corrige{background:#e88a2c!important;color:#111!important}
+.confirma{background:#45a66d!important;color:#111!important}
+.numero-display{font-size:3rem!important;letter-spacing:.12em!important;font-weight:900!important}
+.fim{font-size:4.5rem!important;text-align:center!important;font-weight:950!important}
+
+@media(max-width:900px){
+  .grid-3,.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .panel-actions{grid-template-columns:1fr!important}
+  .urna{grid-template-columns:1fr!important}
+}
+@media(max-width:680px){
+  header{padding:0 18px!important}
+  .container,.candidate-wrap,.candidate-main,.done-wrap,.urna-shell{width:94%!important;margin-top:18px!important}
+  .grid-2,.grid2,.grid-3,.grid-4{grid-template-columns:1fr!important}
+  .lookup-row{grid-template-columns:1fr!important}
+  .photo-grid,.photo-row{grid-template-columns:1fr!important}
+  .candidate-row{flex-direction:column!important}
+  .footer-actions,.actions{flex-direction:column!important}
+  .footer-actions>*,.actions>*{width:100%!important}
+  .card,.step-card,.form-card{padding:18px!important}
+  .hero,.hero-card,.candidate-hero,.hero-result{padding:22px!important;border-radius:20px!important}
+}
+</style>
+
+</head>
+<body>
+<header><div class="brand"><span class="ballot">🗳️</span> Vota Escola</div></header>
+<main class="container">
+  <section class="hero card">
+    <h1>Vota Escola</h1>
+    <p>Inscrição, votação e apuração do Grêmio Estudantil em um só sistema.</p>
+    <div class="menu-cards">
+      <a class="menu-card" href="candidato.html"><div class="ico">🙋</div><h3>Quero me candidatar</h3><p>Escolha um único cargo e faça sua inscrição.</p></a>
+      <a class="menu-card" href="urna.html"><div class="ico">🗳️</div><h3>Votar</h3><p>Acesse a urna eletrônica escolar.</p></a>
+      <a class="card action-card" href="resultados.html">
+        <div class="action-icon">🏆</div>
+        <h2>Resultado da Eleição</h2>
+        <p>Veja a chapa formada e o percentual de votação de cada candidato.</p>
+      </a>
+      <a class="menu-card" href="gestor.html"><div class="ico">📊</div><h3>Comissão eleitoral</h3><p>Acompanhe inscrições e resultados.</p></a>
+    </div>
+  </section>
+</main>
+<footer>Vota Escola • Sistema de Eleição do Grêmio Estudantil</footer>
+</body></html>

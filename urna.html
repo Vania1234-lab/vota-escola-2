@@ -1,0 +1,338 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Urna Eletrônica • Vota Escola</title><link rel="stylesheet" href="styles.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<style>
+      body{background:#ecebe5}
+      header{background:#27313a}
+      .urna-wrap{max-width:1100px;margin:0 auto}
+      #login{max-width:760px;margin:42px auto}
+      .urna{border:1px solid #aaa}
+      .tela{min-height:470px}
+      @media (min-width:1000px){
+        .tecla{font-size:1.55rem;padding:18px}
+        .acao{font-size:1.02rem}
+      }
+    </style></head><body>
+<header>
+      <div class="brand"><span class="ballot">🗳️</span> Vota Escola</div>
+    </header>
+    <div style="background:#fff;border-bottom:1px solid #dfe5eb;padding:10px 20px;text-align:center;font-weight:800">
+      URNA ELETRÔNICA DO GRÊMIO ESTUDANTIL
+    </div>
+<main class="container">
+  <div id="login" class="card" style="text-align:center">
+    <h1>🗳️ Urna aguardando liberação</h1>
+    <div id="mode" class="notice"></div>
+    <p id="urnaIdentificacao" class="muted"></p>
+    <p>O gestor identificará o estudante e autorizará a votação neste equipamento.</p>
+    <div id="loginMsg" class="notice">Aguardando próximo eleitor...</div>
+  </div>
+  <div id="urnaArea" class="hidden">
+    <div class="urna-wrap">
+      <section class="urna">
+        <div class="tela">
+          <div id="votacaoTela">
+            <div class="small">SEU VOTO PARA</div>
+            <div class="cargo" id="cargoAtual"></div>
+            <div class="numero-display" id="display">__</div>
+            <div id="candArea" class="candidato-box hidden">
+              <img id="candFoto" class="candidato-foto" alt="">
+              <div><h2 id="candNome"></h2><p id="candTurma"></p><p id="candPropostas" class="small"></p></div>
+            </div>
+            <div id="aviso" class="notice hidden"></div>
+          </div>
+          <div id="fim" class="fim hidden">FIM</div>
+        </div>
+      </section>
+      <aside class="teclado">
+        <div class="teclas">
+          <button class="tecla" data-n="1">1</button><button class="tecla" data-n="2">2</button><button class="tecla" data-n="3">3</button>
+          <button class="tecla" data-n="4">4</button><button class="tecla" data-n="5">5</button><button class="tecla" data-n="6">6</button>
+          <button class="tecla" data-n="7">7</button><button class="tecla" data-n="8">8</button><button class="tecla" data-n="9">9</button>
+          <span></span><button class="tecla" data-n="0">0</button><span></span>
+        </div>
+        <div class="acoes">
+          <button id="branco" class="acao branco">BRANCO</button>
+          <button id="corrige" class="acao corrige">CORRIGE</button>
+          <button id="confirma" class="acao confirma">CONFIRMA</button>
+        </div>
+      </aside>
+    </div>
+    <p class="small muted" style="margin-top:16px;text-align:center">
+      Após concluir a votação, aguarde a tela FIM.
+    </p>
+  </div>
+</main>
+<script src="firebase-config.js"></script><script src="core.js"></script>
+<script>
+(async()=>{
+ try{
+ const S=VotaEscola.Store; await S.init();
+ document.getElementById("mode").textContent=S.mode==="demo"?"Modo demonstração: dados apenas neste navegador.":"Conectado ao Firebase.";
+
+ const election=await S.getElection();
+ if(!election.votingOpen){
+   document.getElementById("login").innerHTML=`
+     <div class="notice error">
+       <strong>A urna está fechada.</strong><br>
+       A comissão eleitoral precisa entrar no Painel do Gestor, marcar
+       <strong>“Votação aberta”</strong> e clicar em <strong>“Salvar configuração”</strong>.
+     </div>`;
+   return;
+ }
+
+ let todosCargos=await S.getCargosVotaveis();
+ let cargos=[];
+ let idx=0, numero="", branco=false, eleitor=null, candidatos=[], candidato=null;
+ let todasCandidaturasAprovadas=[];
+
+ try{
+   todasCandidaturasAprovadas=(await S.listCandidaturas()).filter(c=>String(c.status||"").trim().toLowerCase()==="aprovado");
+ }catch(e){
+   console.warn("Não foi possível carregar a lista geral de candidaturas:",e);
+ }
+
+  const params=new URLSearchParams(location.search);
+  const urnaId=(params.get("urna")||"urna-1").trim().toLowerCase();
+  if(!/^[a-z0-9_-]{1,40}$/.test(urnaId)) throw new Error("Identificador da urna inválido.");
+  document.getElementById("urnaIdentificacao").textContent="Equipamento: "+urnaId;
+  let tokenSessao=null, sessaoEmAndamento=false, encerrando=false;
+  async function verificarLiberacao(){
+    if(sessaoEmAndamento || encerrando) return;
+    const sessao=await S.getUrnaSession(urnaId);
+    if(!sessao || sessao.status!=="liberada") return;
+    sessaoEmAndamento=true;
+    try{
+      const voter=await S.getVoter(sessao.ra);
+      if(!voter || voter.ativo===false) throw new Error("Eleitor indisponível.");
+      // Atualiza a lista antes de cada eleitor: novas aprovações passam a valer.
+      todosCargos=await S.getCargosVotaveis();
+      if(!todosCargos.length) throw new Error("Não há cargos com candidatos aprovados para votação.");
+      const jaVotados=Array.isArray(voter.votedCargos)?voter.votedCargos:[];
+      cargos=todosCargos.filter(c=>!jaVotados.includes(c));
+      if(!cargos.length) throw new Error("Eleitor já concluiu todos os cargos. Avise o gestor.");
+      tokenSessao=sessao.token;
+      eleitor={ra:String(sessao.ra),nome:voter.nome||"",turma:voter.turma||""};
+      idx=0;
+      document.getElementById("login").classList.add("hidden");
+      document.getElementById("urnaArea").classList.remove("hidden");
+      document.getElementById("fim").classList.add("hidden");
+      document.getElementById("votacaoTela").classList.remove("hidden");
+      document.getElementById("eleitorInfo")?.remove();
+      const info=document.createElement("div");
+      info.className="notice";info.id="eleitorInfo";
+      info.innerHTML=`<strong>${esc(eleitor.nome)}</strong> • ${esc(eleitor.turma)}<br><span class="small">${cargos.length} cargo(s) disponível(is).</span>`;
+      document.getElementById("votacaoTela").prepend(info);
+      await carregarCargo();
+    }catch(err){
+      console.error(err);loginMsg(err.message||"Erro ao liberar eleitor.");sessaoEmAndamento=false;
+    }
+  }
+  async function finalizarVotacao(){
+    encerrando=true;
+    document.getElementById("votacaoTela").classList.add("hidden");
+    document.getElementById("fim").classList.remove("hidden");
+    // O gestor detecta a conclusão pelos cargos votados e libera a próxima sessão.
+    // Nunca redirecionar para index.html: a urna deve ficar pronta para o próximo eleitor.
+    setTimeout(()=>{
+      document.getElementById("urnaArea").classList.add("hidden");
+      document.getElementById("login").classList.remove("hidden");
+      document.getElementById("loginMsg").textContent="Aguardando próximo eleitor...";
+      tokenSessao=null;eleitor=null;encerrando=false;sessaoEmAndamento=false;
+    },4500);
+  }
+  // Uma leitura por urna a cada 6 segundos, apenas quando a aba está visível.
+  // Impede consultas sobrepostas em conexões lentas.
+  let consultaLiberacaoPendente=false;
+  async function consultarLiberacaoComControle(){
+    if(consultaLiberacaoPendente || document.hidden || sessaoEmAndamento || encerrando)return;
+    consultaLiberacaoPendente=true;
+    try{await verificarLiberacao();}
+    catch(e){loginMsg("Erro de conexão: "+e.message);}
+    finally{consultaLiberacaoPendente=false;}
+  }
+  setInterval(consultarLiberacaoComControle,6000);
+  await verificarLiberacao();
+
+ async function carregarCargo(){
+   numero=""; branco=false; candidato=null;
+   document.getElementById("display").textContent="__";
+   document.getElementById("candArea").classList.add("hidden");
+   document.getElementById("aviso").classList.add("hidden");
+   const cargo=cargos[idx];
+   document.getElementById("cargoAtual").textContent=cargo;
+   candidatos=await S.approvedByCargo(cargo);
+
+   const a=document.getElementById("aviso");
+   if(!candidatos.length){
+     a.className="notice error";
+     a.innerHTML=`<strong>Nenhum candidato aprovado para ${esc(cargo)}.</strong><br>
+       A comissão eleitoral precisa conferir se a candidatura foi realmente aprovada no painel do gestor.`;
+     a.classList.remove("hidden");
+   }
+ }
+
+ document.querySelectorAll(".tecla").forEach(b=>b.onclick=()=>{
+   if(numero.length>=2) return;
+   branco=false;
+   numero=(numero+b.dataset.n).replace(/\D/g,"").slice(0,2);
+   document.getElementById("display").textContent=numero.padEnd(2,"_");
+   if(numero.length===2) localizar();
+ });
+
+ function localizar(){
+   const normalizaNumero=v=>{
+     const d=String(v??"").replace(/\D/g,"");
+     return d ? d.padStart(2,"0").slice(-2) : "";
+   };
+
+   const digitado=normalizaNumero(numero);
+   candidato=candidatos.find(c=>normalizaNumero(c.numero)===digitado);
+   const a=document.getElementById("aviso");
+   const cargoAtual=cargos[idx];
+
+   if(!candidato){
+     // Verifica se o número pertence a candidato aprovado em OUTRO cargo.
+     let encontrados=[];
+     for(const c of todasCandidaturasAprovadas){
+       for(const item of (c.cargos||[])){
+         if(normalizaNumero(item.numero)===digitado){
+           encontrados.push({nome:c.nome,cargo:item.cargo});
+         }
+       }
+     }
+
+     a.className="notice error";
+     if(!candidatos.length){
+       a.innerHTML=`<strong>Não há candidatos aprovados para ${esc(cargoAtual)}.</strong><br>
+         Procure a comissão eleitoral antes de continuar.`;
+     }else if(encontrados.length){
+       const outro=encontrados[0];
+       a.innerHTML=`O número <strong>${esc(digitado)}</strong> existe, mas pertence a
+         <strong>${esc(outro.nome)}</strong>, candidato(a) a <strong>${esc(outro.cargo)}</strong>.<br><br>
+         Agora você está votando para <strong>${esc(cargoAtual)}</strong>.`;
+     }else{
+       const disponiveis=candidatos
+         .map(c=>`<strong>${esc(c.numero)}</strong> — ${esc(c.nome)}`)
+         .join("<br>");
+       a.innerHTML=`O número <strong>${esc(digitado)}</strong> não está cadastrado para
+         <strong>${esc(cargoAtual)}</strong>.<br><br>
+         <span class="small">Candidatos aprovados para este cargo:<br>${disponiveis}</span><br><br>
+         Se confirmar assim, o voto será <strong>NULO</strong>.`;
+     }
+
+     a.classList.remove("hidden");
+     document.getElementById("candArea").classList.add("hidden");
+     return;
+   }
+
+   a.classList.add("hidden");
+   document.getElementById("candNome").textContent=candidato.nome;
+   document.getElementById("candTurma").textContent=candidato.turma||"";
+   document.getElementById("candPropostas").textContent=(candidato.propostas||"").slice(0,240);
+   const img=document.getElementById("candFoto");
+   if(candidato.foto){
+     img.src=candidato.foto;
+     img.style.display="";
+   }else{
+     img.removeAttribute("src");
+     img.style.display="none";
+   }
+   document.getElementById("candArea").classList.remove("hidden");
+ }
+
+ document.getElementById("corrige").onclick=()=>carregarCargo();
+
+ document.getElementById("branco").onclick=()=>{
+   numero=""; candidato=null; branco=true;
+   document.getElementById("display").textContent="BRANCO";
+   document.getElementById("candArea").classList.add("hidden");
+   const a=document.getElementById("aviso");
+   a.className="notice";
+   a.textContent="VOTO EM BRANCO";
+   a.classList.remove("hidden");
+ };
+
+ document.getElementById("confirma").onclick=async()=>{
+   if(!branco && numero.length!==2) return;
+
+   const cargoAtual=cargos[idx];
+   let tipo="valido", candidatoId=null, candidatoNome=null, numeroVoto=null;
+
+   if(branco){
+     tipo="branco";
+   }else if(!candidato){
+     tipo="nulo";
+   }else{
+     candidatoId=candidato.id;
+     candidatoNome=candidato.nome;
+     numeroVoto=numero;
+   }
+
+   try{
+     document.getElementById("confirma").disabled=true;
+
+     await S.recordVoteForVoter(eleitor.ra,cargoAtual,{
+       tipo,
+       candidatoId,
+       candidatoNome,
+       numero:numeroVoto
+     },urnaId,tokenSessao);
+
+     VotaEscola.trululu();
+     idx++;
+
+     if(idx>=cargos.length){
+       await finalizarVotacao();
+     }else{
+       await carregarCargo();
+     }
+   }catch(err){
+     console.error(err);
+     const msg=String(err?.message||err);
+     if(msg.includes("CARGO_JA_VOTADO")){
+       alert("Este RA já votou neste cargo. A urna seguirá para os cargos restantes.");
+       idx++;
+       if(idx>=cargos.length){
+         await finalizarVotacao();
+       }else await carregarCargo();
+     }else{
+       const codigo=err?.code ? String(err.code) : "sem-codigo";
+       const detalhe=String(err?.message||err||"Erro desconhecido");
+       const explicacao=codigo.includes("permission-denied")
+         ? "O Firebase recusou a gravação. Confira se as regras publicadas são as mesmas do arquivo firestore.rules."
+         : codigo.includes("unavailable")
+           ? "Sem conexão estável com o Firebase. Verifique a internet e tente novamente."
+           : codigo.includes("failed-precondition")
+             ? "O Firebase não conseguiu concluir a operação. Confira a configuração do Firestore."
+             : "A votação não foi confirmada. Não avance sem verificar o motivo.";
+       const mensagem=`Não foi possível registrar este voto.\n\nCódigo: ${codigo}\nDetalhe: ${detalhe}\n\n${explicacao}`;
+       console.error("VOTA ESCOLA - erro ao registrar voto",{codigo,detalhe,urnaId,cargo:cargoAtual});
+       alert(mensagem);
+     }
+   }finally{
+     document.getElementById("confirma").disabled=false;
+   }
+ };
+
+ function loginMsg(t){
+   const el=document.getElementById("loginMsg");
+   el.className="notice error";
+   el.textContent=t;
+ }
+ function esc(v){
+   return String(v??"")
+     .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+     .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+ }
+ }catch(err){
+   console.error("Falha ao iniciar a urna:",err);
+   const login=document.getElementById("login");
+   if(login){
+     login.innerHTML=`<div class="notice error"><strong>Não foi possível iniciar a urna.</strong><br>${String(err?.message||err)}</div>`;
+   }
+ }
+})();
+</script></body></html>
