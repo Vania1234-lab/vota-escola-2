@@ -3,6 +3,7 @@
 <title>Urna Eletrônica • Vota Escola</title><link rel="stylesheet" href="styles.css">
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <style>
       body{background:#ecebe5}
       header{background:#27313a}
@@ -70,6 +71,12 @@
 (async()=>{
  try{
  const S=VotaEscola.Store; await S.init();
+ // A urna precisa de identidade Firebase para ler e registrar participação.
+ if(S.mode!=="demo"){
+   if(!firebase.auth().currentUser){
+     await firebase.auth().signInAnonymously();
+   }
+ }
  document.getElementById("mode").textContent=S.mode==="demo"?"Modo demonstração: dados apenas neste navegador.":"Conectado ao Firebase.";
 
  const election=await S.getElection();

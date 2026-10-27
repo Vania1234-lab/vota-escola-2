@@ -1,27 +1,49 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function gestor() {
+      return request.auth != null && request.auth.token.email == 'vaniaoliveirasilva@professor.educacao.sp.gov.br';
+    }
+    function autenticado() { return request.auth != null; }
+    function sessaoAtiva(ra) {
+      return resource.data.get('urnaAtiva', '') is string
+        && resource.data.get('urnaAtiva', '') != ''
+        && exists(/databases/$(database)/documents/urnas/$(resource.data.urnaAtiva))
+        && get(/databases/$(database)/documents/urnas/$(resource.data.urnaAtiva)).data.status == 'liberada'
+        && get(/databases/$(database)/documents/urnas/$(resource.data.urnaAtiva)).data.ra == ra;
+    }
     match /config/{doc} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if gestor();
     }
     match /candidaturas/{id} {
-      allow create: if true;
       allow read: if true;
-      allow update, delete: if request.auth != null;
+      allow create: if true;
+      allow update, delete: if gestor();
     }
     match /eleitores/{ra} {
-      allow read, write: if true;
+      allow get: if gestor() || (autenticado() && sessaoAtiva(ra));
+      allow list: if gestor();
+      allow create, delete: if gestor();
+      allow update: if gestor() || (
+        autenticado() && sessaoAtiva(ra)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votedCargos', 'lastVoteAt'])
+        && request.resource.data.votedCargos is list
+        && resource.data.get('votedCargos', []) is list
+        && request.resource.data.votedCargos.size() == resource.data.get('votedCargos', []).size() + 1
+        && request.resource.data.votedCargos.hasAll(resource.data.get('votedCargos', []))
+      );
     }
-    // A urna consulta sua autorização; somente o gestor autenticado
-    // pode criar, concluir ou cancelar uma sessão.
     match /urnas/{urnaId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      allow create, update, delete: if gestor();
     }
     match /votos/{id} {
-      allow create: if true;
-      allow read: if request.auth != null;
+      allow create: if autenticado()
+        && !('ra' in request.resource.data)
+        && !('nome' in request.resource.data)
+        && !('turma' in request.resource.data);
+      allow read: if gestor();
       allow update, delete: if false;
     }
   }

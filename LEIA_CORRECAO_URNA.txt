@@ -1,0 +1,10 @@
+CORREÇÃO DA URNA - VOTA ESCOLA 2
+
+1. No Firebase > Authentication > Método de login, habilite ANÔNIMO (mantendo E-mail/senha habilitado).
+2. No Firestore > Regras, publique o conteúdo de firestore.rules. Antes, confira se o e-mail na função gestor() corresponde EXATAMENTE à conta gestora usada no login.
+3. Publique todos os arquivos deste ZIP no repositório vota-escola-2. A mudança funcional está em urna.html; o restante foi preservado.
+4. Atualize a página urna.html com Ctrl+F5. Abra o gestor, libere um eleitor fictício e teste em ambiente controlado.
+
+IMPORTANTE: Estas regras são um ajuste intermediário. A autenticação anônima identifica a sessão Firebase, mas não autentica fisicamente a urna. Um cliente malicioso pode tentar se passar por uma urna e criar votos; para eleição real é necessária validação confiável do lado servidor. Não use como garantia de integridade eleitoral.
+
+Não há comandos para apagar ou reiniciar candidatos, eleitores ou votos. O banco anterior permanece intacto.
