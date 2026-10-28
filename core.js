@@ -12,14 +12,11 @@
     },
     cargos: [
       "Presidente",
-      "Secretário",
-      "Tesoureiro",
       "Diretor de Comunicação",
       "Diretor de Cultura",
       "Diretor de Esportes",
       "Diretor de Eventos",
-      "Diretor de Meio Ambiente",
-      "Diretor de Direitos Humanos"
+      "Diretor de Meio Ambiente"
     ]
   };
 
@@ -42,7 +39,11 @@
     },
     async getElection(){ return LS.get("ve_election", defaults.election); },
     async setElection(data){ LS.set("ve_election", data); return data; },
-    async getCargos(){ return LS.get("ve_cargos", defaults.cargos); },
+    async getCargos(){
+      // Exibe somente os cargos ativos da nova eleição; não modifica o banco.
+      const ativos=new Set(defaults.cargos);
+      return LS.get("ve_cargos", defaults.cargos).filter(c=>ativos.has(c));
+    },
     async saveCandidatura(data){
       const arr=LS.get("ve_candidaturas",[]);
       arr.push({...data,id:uid(),status:"pendente",createdAt:now()});
@@ -229,9 +230,12 @@
     async getCargos(){
       try{
         const s=await this.db.collection("config").doc("cargos").get();
-        return (s.exists && s.data() && Array.isArray(s.data().lista) && s.data().lista.length)
+        const configurados=(s.exists && s.data() && Array.isArray(s.data().lista) && s.data().lista.length)
           ? s.data().lista
           : defaults.cargos;
+        // Não altera config/cargos no Firestore nem votos históricos.
+        const ativos=new Set(defaults.cargos);
+        return configurados.filter(c=>ativos.has(c));
       }catch(e){
         console.warn("Usando cargos padrão:", e);
         return defaults.cargos;

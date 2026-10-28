@@ -1,0 +1,9 @@
+VOTA ESCOLA 2 — CARGOS ATIVOS
+
+Ativos: Presidente; Diretor de Comunicação; Diretor de Cultura; Diretor de Esportes; Diretor de Eventos; Diretor de Meio Ambiente.
+
+Ocultos do sistema: Secretário; Tesoureiro; Diretor de Direitos Humanos.
+
+A atualização filtra cargos na aplicação e NÃO apaga nem altera documentos do Firestore, candidaturas, eleitores ou votos. A configuração histórica config/cargos permanece intacta.
+
+Publique todos os arquivos do ZIP na raiz do repositório. Não execute novamente o importador de candidaturas. Atualize com Ctrl+F5.
