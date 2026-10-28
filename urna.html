@@ -80,7 +80,7 @@
  document.getElementById("mode").textContent=S.mode==="demo"?"Modo demonstração: dados apenas neste navegador.":"Conectado ao Firebase.";
 
  const election=await S.getElection();
- if(!election.votingOpen){
+ if(election.closed===true || !election.votingOpen){
    document.getElementById("login").innerHTML=`
      <div class="notice error">
        <strong>A urna está fechada.</strong><br>

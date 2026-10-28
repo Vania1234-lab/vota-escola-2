@@ -212,9 +212,10 @@ th{background:#f6f8fa}
     <div class="grid grid-3">
       <label><input id="regOpen" type="checkbox" style="width:auto"> Inscrições abertas</label>
       <label><input id="voteOpen" type="checkbox" style="width:auto"> Votação aberta</label>
-      <label><input id="resultsOpen" type="checkbox" style="width:auto"> Resultados liberados</label>
+      <label><input id="resultsOpen" type="checkbox" style="width:auto"> Publicar resultados após encerramento</label>
     </div>
     <button id="saveConfig" class="btn btn-primary">Salvar configuração</button>
+    <div id="encerramentoPainel" class="notice" style="margin-top:16px"><strong>Encerramento definitivo da eleição</strong><p>Somente após o encerramento com a senha da conta gestora a apuração será gerada. A eleição não poderá ser reaberta por este painel.</p><label for="senhaEncerramento">Confirme sua senha de gestor para encerrar</label><input id="senhaEncerramento" type="password" autocomplete="current-password" placeholder="Senha do Firebase Authentication"><button id="encerrarEleicaoBtn" type="button" class="btn btn-primary" style="margin-top:10px">Encerrar eleição e gerar apuração</button><div id="statusEncerramento"></div></div>
   </section>
 
   <section class="grid grid-3">
@@ -397,6 +398,9 @@ th{background:#f6f8fa}
  async function iniciarPainel(){
  const el=await S.getElection();
  regOpen.checked=!!el.registrationOpen; voteOpen.checked=!!el.votingOpen; resultsOpen.checked=!!el.resultsReleased;
+ const encerrada=el.closed===true;
+ if(encerrada){regOpen.disabled=true;voteOpen.checked=false;voteOpen.disabled=true;resultsOpen.disabled=true;document.getElementById("encerrarEleicaoBtn").disabled=true;document.getElementById("senhaEncerramento").disabled=true;document.getElementById("statusEncerramento").textContent="Eleição encerrada em "+(el.closedAt||"data não informada")+". Apuração definitiva.";}
+ else {resultsOpen.checked=false;resultsOpen.disabled=true;document.getElementById("statusEncerramento").textContent="A apuração só será gerada após a confirmação da senha e o encerramento.";}
 
  async function gerarResultadoPublico(){
    const [cargos,candidaturas,votos]=await Promise.all([
@@ -478,40 +482,53 @@ th{background:#f6f8fa}
    });
  }
 
+ // A senha não é armazenada no Firestore nem no código: o Firebase Auth a verifica.
+ document.getElementById("encerrarEleicaoBtn").onclick=async()=>{
+   const btn=document.getElementById("encerrarEleicaoBtn");
+   const status=document.getElementById("statusEncerramento");
+   const senha=document.getElementById("senhaEncerramento").value;
+   if(!senha){alert("Informe a senha da conta gestora para encerrar.");return;}
+   if(!confirm("ATENÇÃO: o encerramento é definitivo. Confirma que todas as urnas terminaram e que deseja encerrar a eleição?"))return;
+   btn.disabled=true;status.textContent="Validando senha e encerrando eleição...";
+   try{
+     const user=firebase.auth().currentUser;
+     if(!user || !user.email || user.isAnonymous)throw new Error("Entre com a conta gestora de e-mail e senha.");
+     const cred=firebase.auth.EmailAuthProvider.credential(user.email,senha);
+     await user.reauthenticateWithCredential(cred);
+     const db=firebase.firestore();
+     const ref=db.collection("config").doc("eleicao");
+     await db.runTransaction(async tx=>{
+       const snap=await tx.get(ref);
+       const atual=snap.exists?snap.data():{};
+       if(atual.closed===true)throw new Error("A eleição já foi encerrada.");
+       tx.set(ref,{closed:true,closedAt:new Date().toISOString(),votingOpen:false,registrationOpen:false,resultsReleased:false},{merge:true});
+     });
+     voteOpen.checked=false;voteOpen.disabled=true;regOpen.checked=false;regOpen.disabled=true;
+     status.textContent="Votação encerrada. Gerando apuração definitiva...";
+     await gerarResultadoPublico();
+     await ref.update({resultsReleased:true});
+     resultsOpen.checked=true;resultsOpen.disabled=true;
+     status.textContent="Eleição encerrada e resultado definitivo gerado com sucesso.";
+     document.getElementById("senhaEncerramento").value="";
+     await renderResults();
+     alert("Eleição encerrada. Resultados gerados e liberados.");
+   }catch(err){
+     console.error("Encerramento",err);
+     status.textContent="Não foi possível concluir: "+(err?.message||err)+". Se a votação já foi encerrada, não a reabra: a apuração pode ser recuperada com segurança.";
+     // Se a gravação de encerramento já aconteceu, não reabilitar o botão.
+     try{const atual=await S.getElection();if(atual.closed!==true)btn.disabled=false;}catch(_){ }
+   }
+ };
  saveConfig.onclick=async()=>{
    try{
      saveConfig.disabled=true;
-     saveConfig.textContent="Salvando...";
-
-     const novaConfig={
-       ...el,
-       registrationOpen:regOpen.checked,
-       votingOpen:voteOpen.checked,
-       resultsReleased:resultsOpen.checked
-     };
-
-     // Primeiro salva a configuração.
-     await S.setElection(novaConfig);
-
-     // Se os resultados foram liberados, gera uma fotografia pública da apuração.
-     // Nenhum RA, nome de eleitor ou vínculo entre eleitor e voto é copiado.
-     if(resultsOpen.checked){
-       saveConfig.textContent="Gerando apuração...";
-       await gerarResultadoPublico();
-     }
-
-     alert(resultsOpen.checked
-       ? "Configuração salva e resultado público gerado com sucesso."
-       : (voteOpen.checked
-          ? "Configuração salva. A URNA ESTÁ ABERTA para votação."
-          : "Configuração salva. A urna está fechada."));
-   }catch(err){
-     console.error(err);
-     alert("Não foi possível salvar a configuração/apuração: "+(err?.message||err));
-   }finally{
-     saveConfig.disabled=false;
-     saveConfig.textContent="Salvar configuração";
-   }
+     const atual=await S.getElection();
+     if(atual.closed===true){alert("Eleição encerrada. Não é possível alterar as configurações ou reabrir a votação.");return;}
+     await S.setElection({...atual,registrationOpen:regOpen.checked,votingOpen:voteOpen.checked,resultsReleased:false});
+     resultsOpen.checked=false;
+     alert("Configuração salva. Os resultados permanecem bloqueados até o encerramento com senha.");
+   }catch(err){console.error(err);alert("Falha ao salvar: "+(err?.message||err));}
+   finally{saveConfig.disabled=false;}
  };
  // Relatório preparado no navegador com os dados atuais do Firestore.
  document.getElementById("btnRelatorioCandidatos").addEventListener("click", async ()=>{
@@ -621,7 +638,7 @@ th{background:#f6f8fa}
          ` : `<span class="badge badge-${c.status}" style="text-align:center">${c.status}</span>`}
        </div>
      </div>`).join(""):"<p>Nenhuma candidatura.</p>";
-   if(el.resultsReleased) await renderResults();
+   if(el.closed===true && el.resultsReleased===true) await renderResults();
  }
 
 
@@ -996,6 +1013,8 @@ th{background:#f6f8fa}
    await refresh();
  }
  async function renderResults(){
+   const estado=await S.getElection();
+   if(estado.closed!==true || estado.resultsReleased!==true){locked.classList.remove("hidden");results.classList.add("hidden");document.getElementById("atualizarApuracao").classList.add("hidden");return;}
    locked.classList.add("hidden"); results.classList.remove("hidden");
    const btn=document.getElementById("atualizarApuracao");
    btn.classList.remove("hidden"); btn.disabled=true;

@@ -5,6 +5,10 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email == 'vaniaoliveirasilva@professor.educacao.sp.gov.br';
     }
     function autenticado() { return request.auth != null; }
+    function encerrada() {
+      return exists(/databases/$(database)/documents/config/eleicao)
+        && get(/databases/$(database)/documents/config/eleicao).data.get('closed', false) == true;
+    }
     function sessaoAtiva(ra) {
       return resource.data.get('urnaAtiva', '') is string
         && resource.data.get('urnaAtiva', '') != ''
@@ -14,7 +18,18 @@ service cloud.firestore {
     }
     match /config/{doc} {
       allow read: if true;
-      allow write: if gestor();
+      allow create: if gestor();
+      allow update: if gestor() && (
+        (doc == 'eleicao' && (
+          resource.data.get('closed', false) != true
+          || (request.resource.data.get('closed', false) == true
+              && request.resource.data.get('votingOpen', false) == false
+              && request.resource.data.get('registrationOpen', false) == false)
+        ))
+        || (doc == 'resultadoPublico' && encerrada())
+        || (doc != 'eleicao' && doc != 'resultadoPublico')
+      );
+      allow delete: if false;
     }
     match /candidaturas/{id} {
       allow read: if true;
@@ -26,6 +41,7 @@ service cloud.firestore {
       allow list: if gestor();
       allow create, delete: if gestor();
       allow update: if gestor() || (
+        !encerrada() &&
         autenticado() && sessaoAtiva(ra)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votedCargos', 'lastVoteAt'])
         && request.resource.data.votedCargos is list
@@ -39,7 +55,7 @@ service cloud.firestore {
       allow create, update, delete: if gestor();
     }
     match /votos/{id} {
-      allow create: if autenticado()
+      allow create: if autenticado() && !encerrada()
         && !('ra' in request.resource.data)
         && !('nome' in request.resource.data)
         && !('turma' in request.resource.data);

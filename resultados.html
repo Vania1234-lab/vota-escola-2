@@ -230,7 +230,7 @@
     document.getElementById("electionName").textContent=
       election.name||"Eleição do Grêmio Estudantil";
 
-    if(!election.resultsReleased){
+    if(election.closed!==true || !election.resultsReleased){
       document.getElementById("loading").classList.add("hidden");
       document.getElementById("closed").classList.remove("hidden");
       await atualizarParticipacao();
