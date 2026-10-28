@@ -366,6 +366,8 @@ th{background:#f6f8fa}
      document.getElementById("entrarGestor").disabled=true;
      msg.className="notice";
      msg.textContent="Verificando acesso...";
+     // Uma sessão anônima da urna pode permanecer no mesmo navegador.
+     // O login por e-mail substitui essa sessão de forma explícita.
      await firebase.auth().signInWithEmailAndPassword(email,senha);
    }catch(err){
      console.error(err);
@@ -377,8 +379,13 @@ th{background:#f6f8fa}
  };
 
  firebase.auth().onAuthStateChanged(async user=>{
-   if(!user){
+   if(!user || user.isAnonymous || !user.email){
      document.getElementById("loginGestor").classList.remove("hidden");
+     const aviso=document.getElementById("loginGestorMsg");
+     if(user && user.isAnonymous){
+       aviso.className="notice";
+       aviso.textContent="Este navegador está com uma sessão de urna (anônima). Entre com o e-mail e a senha do gestor para administrar a eleição.";
+     }
      document.getElementById("appGestor").classList.add("hidden");
      return;
    }
@@ -537,7 +544,8 @@ th{background:#f6f8fa}
    try{
      if(S.mode!=="firebase")throw new Error("Esta recuperação exige Firebase.");
      const user=firebase.auth().currentUser;
-     if(!user || !user.email || user.isAnonymous)throw new Error("Entre com a conta gestora.");
+     if(!user || !user.email || user.isAnonymous)throw new Error("Sessão anônima detectada. Clique em Sair, entre com e-mail e senha do gestor e tente novamente.");
+     status.textContent="Validando a senha do gestor...";
      await user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(user.email,campo.value));
      await user.getIdToken(true);
      const ref=firebase.firestore().collection("config").doc("eleicao");
@@ -549,7 +557,15 @@ th{background:#f6f8fa}
      campo.value="";
      status.textContent="Votação reaberta. Nenhum registro foi apagado. Atualize as urnas com Ctrl+F5.";
      await iniciarPainel();
-   }catch(err){console.error("Recuperação de teste",err);status.textContent="Não foi possível reabrir: "+(err.message||err)+". Confira se as regras novas foram publicadas.";}
+   }catch(err){
+     console.error("Recuperação de teste",err);
+     const codigo=err?.code?" ["+err.code+"]":"";
+     let dica="";
+     if(err?.code==="permission-denied") dica=" Confira se a conta gestora corresponde ao e-mail autorizado nas regras publicadas do Firestore.";
+     else if(err?.code==="auth/wrong-password" || err?.code==="auth/invalid-credential") dica=" Confira a senha da conta gestora.";
+     else if(err?.code==="auth/requires-recent-login") dica=" Saia, entre novamente com a conta gestora e repita a operação.";
+     status.textContent="Não foi possível reabrir"+codigo+": "+(err?.message||err)+"."+dica;
+   }
    finally{btn.disabled=false;}
  };
  document.getElementById("recuperarApuracaoBtn").onclick=async()=>{

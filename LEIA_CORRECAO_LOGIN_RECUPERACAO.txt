@@ -1,0 +1,9 @@
+CORREÇÃO PONTUAL — LOGIN DO GESTOR E DIAGNÓSTICO DA REABERTURA
+
+1. Substitua SOMENTE gestor.html no GitHub Pages. Nenhum dado do Firebase é alterado por esta publicação.
+2. Abra gestor.html, clique em Sair se houver sessão antiga, e entre com o e-mail e senha do gestor.
+3. Se estiver em sessão anônima da urna, o painel não será apresentado como gestor.
+4. Na recuperação, o erro agora mostrará o código Firebase real (ex.: permission-denied).
+5. ATENÇÃO: o arquivo firestore.rules neste ZIP autoriza um e-mail específico de gestor. Se a conta utilizada for outra, a recuperação continuará bloqueada. Não publique regras permissivas para contornar isso; valide a identidade da conta antes de alterar regras.
+6. Não reimporte eleitores ou candidaturas. Nenhum voto de teste é apagado. Faça backup e teste antes de qualquer recuperação real.
+7. A correção não foi validada em um Firebase ao vivo. A recuperação de eleição encerrada é excepcional e deve ser removida antes do pleito oficial.
