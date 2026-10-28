@@ -273,24 +273,27 @@ tr:last-child td{border-bottom:none!important}
 }
 </style>
 
+<link rel="stylesheet" href="elegante.css?v=1">
 </head>
-<body>
+<body class="vota-home">
 <header><div class="brand"><span class="ballot">🗳️</span> Vota Escola</div></header>
 <main class="container">
-  <section class="hero card">
-    <h1>Vota Escola</h1>
-    <p>Inscrição, votação e apuração do Grêmio Estudantil em um só sistema.</p>
-    <div class="menu-cards">
-      <a class="menu-card" href="candidato.html"><div class="ico">🙋</div><h3>Quero me candidatar</h3><p>Escolha um único cargo e faça sua inscrição.</p></a>
-      <a class="menu-card" href="urna.html"><div class="ico">🗳️</div><h3>Votar</h3><p>Acesse a urna eletrônica escolar.</p></a>
-      <a class="card action-card" href="resultados.html">
-        <div class="action-icon">🏆</div>
-        <h2>Resultado da Eleição</h2>
-        <p>Veja a chapa formada e o percentual de votação de cada candidato.</p>
-      </a>
-      <a class="menu-card" href="gestor.html"><div class="ico">📊</div><h3>Comissão eleitoral</h3><p>Acompanhe inscrições e resultados.</p></a>
+  <section class="hero home-hero" aria-labelledby="titulo-home">
+    <div class="home-hero-inner">
+      <span class="home-kicker">✦ Democracia na escola</span>
+      <h1 id="titulo-home">Sua voz transforma a escola.</h1>
+      <p>Participe da eleição do Grêmio Estudantil. Um espaço para escolher, representar e construir o futuro juntos.</p>
     </div>
   </section>
+  <section aria-labelledby="acessos-home">
+    <div class="home-heading"><div><h2 id="acessos-home">O que você deseja fazer?</h2><p>Escolha uma opção para continuar.</p></div></div>
+    <div class="home-grid">
+      <a class="home-link" href="candidato.html"><span class="home-link-icon" aria-hidden="true">🙋</span><div><h3>Quero me candidatar</h3><p>Apresente suas ideias e participe da eleição como candidato.</p></div></a>
+      <a class="home-link" href="urna.html"><span class="home-link-icon" aria-hidden="true">🗳️</span><div><h3>Votar na eleição</h3><p>Acesse a urna eletrônica quando a votação estiver liberada.</p></div></a>
+      <a class="home-link" href="resultados.html"><span class="home-link-icon" aria-hidden="true">🏆</span><div><h3>Resultados da eleição</h3><p>Confira a apuração após o encerramento e a liberação oficial.</p></div></a>
+      <a class="home-link" href="gestor.html"><span class="home-link-icon" aria-hidden="true">📊</span><div><h3>Comissão eleitoral</h3><p>Área de gestão, acompanhamento e encerramento protegido.</p></div></a>
+    </div>
+  </section>
+  <p class="home-foot">VOTA ESCOLA 2 · Tecnologia a serviço da participação estudantil</p>
 </main>
-<footer>Vota Escola • Sistema de Eleição do Grêmio Estudantil</footer>
 </body></html>

@@ -1,0 +1,11 @@
+ENCERRAMENTO COM SENHA — VOTA ESCOLA 2
+
+1. Publique os arquivos do ZIP no GitHub Pages.
+2. Publique firestore.rules no Firestore do projeto vota-escola-2.
+3. No Gestor, confira que as urnas terminaram e informe a senha da conta gestora.
+4. Clique em Encerrar eleição e gerar apuração. A votação será bloqueada antes de apurar.
+5. Resultados e gráficos só serão mostrados após o encerramento.
+
+IMPORTANTE: O encerramento é irreversível pelo painel. Faça backup antes. Se houver falha de conexão entre o fechamento e a geração do resultado, não tente reabrir a eleição. É necessário recuperar a geração do resultado.
+
+AVISO DE SEGURANÇA: A reautenticação de senha é verificada no cliente, e as regras do Firestore autorizam a conta gestora; não constituem prova criptográfica de que cada operação foi precedida da senha. Para imposição forte do segredo no servidor, seria necessária uma função de backend confiável.
