@@ -216,7 +216,7 @@ th{background:#f6f8fa}
       <label><input id="resultsOpen" type="checkbox" style="width:auto"> Publicar resultados após encerramento</label>
     </div>
     <button id="saveConfig" class="btn btn-primary">Salvar configuração</button>
-    <div id="encerramentoPainel" class="notice" style="margin-top:16px"><strong>Encerramento definitivo da eleição</strong><p>Somente após o encerramento com a senha da conta gestora a apuração será gerada. A eleição não poderá ser reaberta por este painel.</p><label for="senhaEncerramento">Confirme sua senha de gestor para encerrar</label><input id="senhaEncerramento" type="password" autocomplete="current-password" placeholder="Senha do Firebase Authentication"><button id="encerrarEleicaoBtn" type="button" class="btn btn-primary" style="margin-top:10px">Encerrar eleição e gerar apuração</button><button id="recuperarApuracaoBtn" type="button" class="btn" style="margin:10px 0 0 8px;display:none">Recuperar apuração encerrada</button><div id="statusEncerramento"></div></div>
+    <div id="encerramentoPainel" class="notice" style="margin-top:16px"><strong>Encerramento definitivo da eleição</strong><p>Somente após o encerramento com a senha da conta gestora a apuração será gerada. O encerramento exige senha. Se foi encerrada durante um teste, há uma recuperação excepcional com senha e confirmação explícita, sem apagar votos.</p><label for="senhaEncerramento">Confirme sua senha de gestor para encerrar</label><input id="senhaEncerramento" type="password" autocomplete="current-password" placeholder="Senha do Firebase Authentication"><button id="encerrarEleicaoBtn" type="button" class="btn btn-primary" style="margin-top:10px">Encerrar eleição e gerar apuração</button><button id="recuperarApuracaoBtn" type="button" class="btn" style="margin:10px 0 0 8px;display:none">Recuperar apuração encerrada</button><div id="statusEncerramento"></div><div style="margin-top:14px;padding:12px;border:1px solid #e9b45b;border-radius:10px"><strong>Recuperação após teste</strong><p>Use apenas se a eleição foi encerrada por engano. A recuperação NÃO apaga votos nem permite votar novamente nos cargos já registrados.</p><label for="senhaReabertura">Senha do gestor para recuperar a votação</label><input id="senhaReabertura" type="password" autocomplete="current-password" placeholder="Confirme a senha"><button id="reabrirTesteBtn" type="button" class="btn" style="margin-top:10px;display:none">Reabrir votação após teste</button><div id="statusReabertura" role="status"></div></div></div>
   </section>
 
   <section class="grid grid-3">
@@ -281,7 +281,7 @@ th{background:#f6f8fa}
     <div class="grid grid-2"><div><label>Identificador da urna</label><input id="gestorUrnaId" value="urna-1" placeholder="urna-1"></div><div><label>Localizar eleitor por nome ou RA</label><input id="gestorBuscaLiberacao" placeholder="Digite para pesquisar"></div></div>
     <div id="gestorSessaoInfo" class="notice">Consultando urna...</div>
     <div id="gestorListaLiberacao"></div>
-    <button id="gestorAtualizarUrna" class="btn btn-light" type="button">Atualizar situação</button> <button id="gestorCancelarUrna" class="btn btn-danger" type="button" disabled>Cancelar liberação interrompida</button>
+    <button id="gestorAtualizarUrna" class="btn btn-light" type="button">Atualizar situação</button> <button id="gestorAtualizarEleitoresUrna" class="btn btn-light" type="button">Atualizar lista de eleitores</button> <button id="gestorCancelarUrna" class="btn btn-danger" type="button" disabled>Cancelar liberação interrompida</button>
   </section>
   <section id="ambienteEleitores" class="card ambiente-gestor hidden">
     <div class="ambiente-topo"><h2>Cadastro de eleitores <span style="font-size:12px;color:#176c39;font-weight:700">VERSÃO COM EDITAR · 27/10</span></h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
@@ -400,6 +400,7 @@ th{background:#f6f8fa}
  const el=await S.getElection();
  regOpen.checked=!!el.registrationOpen; voteOpen.checked=!!el.votingOpen; resultsOpen.checked=!!el.resultsReleased;
  const encerrada=el.closed===true;
+ document.getElementById("reabrirTesteBtn").style.display=encerrada?"inline-block":"none";
  if(encerrada){document.getElementById("recuperarApuracaoBtn").style.display=el.resultsReleased===true?"none":"inline-block";regOpen.disabled=true;voteOpen.checked=false;voteOpen.disabled=true;resultsOpen.disabled=true;document.getElementById("encerrarEleicaoBtn").disabled=true;document.getElementById("senhaEncerramento").disabled=true;document.getElementById("statusEncerramento").textContent="Eleição encerrada em "+(el.closedAt||"data não informada")+". Apuração definitiva.";}
  else {resultsOpen.checked=false;resultsOpen.disabled=true;document.getElementById("statusEncerramento").textContent="A apuração só será gerada após a confirmação da senha e o encerramento.";}
 
@@ -524,6 +525,32 @@ th{background:#f6f8fa}
      status.textContent="Falha: "+(err?.message||err)+". Se a eleição foi encerrada, utilize Recuperar apuração (sem reabrir votos).";
      try{const atual=await S.getElection();if(atual.closed!==true)btn.disabled=false;}catch(_){}
    }
+ };
+ document.getElementById("reabrirTesteBtn").onclick=async()=>{
+   const btn=document.getElementById("reabrirTesteBtn");
+   const status=document.getElementById("statusReabertura");
+   const campo=document.getElementById("senhaReabertura");
+   if(!campo.value){status.textContent="Informe a senha do gestor.";return;}
+   if(!confirm("RECUPERAÇÃO EXCEPCIONAL: reabrir a votação sem apagar nenhum voto, eleitor ou candidatura? Os votos de teste continuarão registrados."))return;
+   if(!confirm("Confirme novamente: esta ação é somente para recuperar uma eleição encerrada durante testes. A apuração publicada ficará oculta."))return;
+   btn.disabled=true;
+   try{
+     if(S.mode!=="firebase")throw new Error("Esta recuperação exige Firebase.");
+     const user=firebase.auth().currentUser;
+     if(!user || !user.email || user.isAnonymous)throw new Error("Entre com a conta gestora.");
+     await user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(user.email,campo.value));
+     await user.getIdToken(true);
+     const ref=firebase.firestore().collection("config").doc("eleicao");
+     await firebase.firestore().runTransaction(async tx=>{
+       const snap=await tx.get(ref);
+       if(!snap.exists || snap.data().closed!==true)throw new Error("A eleição não está encerrada. Atualize a página.");
+       tx.update(ref,{closed:false,votingOpen:true,registrationOpen:false,resultsReleased:false,recuperadaAposTesteEm:firebase.firestore.FieldValue.serverTimestamp()});
+     });
+     campo.value="";
+     status.textContent="Votação reaberta. Nenhum registro foi apagado. Atualize as urnas com Ctrl+F5.";
+     await iniciarPainel();
+   }catch(err){console.error("Recuperação de teste",err);status.textContent="Não foi possível reabrir: "+(err.message||err)+". Confira se as regras novas foram publicadas.";}
+   finally{btn.disabled=false;}
  };
  document.getElementById("recuperarApuracaoBtn").onclick=async()=>{
    const btn=document.getElementById("recuperarApuracaoBtn");btn.disabled=true;
@@ -797,9 +824,11 @@ th{background:#f6f8fa}
    catch(e){console.error("Falha ao atualizar eleitores:",e);}
    finally{carregandoListaEleitoresUrna=false;}
  }
+ // Apenas o documento da urna é consultado periodicamente. A lista completa de eleitores
+ // só é lida ao abrir a área ou quando o gestor solicita atualização manual.
+ document.getElementById("gestorAtualizarEleitoresUrna").onclick=()=>atualizarListaEleitoresUrna(true);
  setInterval(()=>{
    if(document.hidden || document.getElementById("ambienteUrnas").classList.contains("hidden"))return;
-   atualizarListaEleitoresUrna();
    atualizarControleUrna().catch(console.error);
  },8000);
  const abrirAmbienteGestorAnterior=window.abrirAmbienteGestor;

@@ -1,0 +1,15 @@
+VOTA ESCOLA 2 — OTIMIZAÇÃO CONSERVADORA DE LEITURAS
+
+BASE: ZIP VOTA_ESCOLA_2_URNA_NOME_VISIVEL(1).zip recebido.
+
+MUDANÇAS FEITAS:
+1. gestor.html: retirado o recarregamento AUTOMÁTICO de todos os eleitores a cada 120 segundos no painel de urnas. A lista continua sendo carregada ao entrar no painel e agora há o botão “Atualizar lista de eleitores”. A sessão da urna continua sendo consultada a cada 8 segundos enquanto o painel estiver visível.
+2. resultados.html: retirada a atualização automática de toda a coleção de eleitores a cada 120 segundos enquanto a eleição estiver aberta. A participação é carregada ao abrir a página e pode ser atualizada com o novo botão “Atualizar participação”.
+
+NÃO ALTERADOS: core.js, urna.html, autenticação, registro de votos, transações, encerramento com senha, apuração, CSS, regras Firestore, candidaturas, dados e importações.
+
+IMPORTANTE: esta versão não elimina todas as leituras. O gestor ainda pode ler eleitores ao entrar em outras áreas; cada urna lê sua sessão periodicamente; transações de votos precisam ler documentos para garantir consistência.
+
+PUBLICAÇÃO: substitua apenas gestor.html e resultados.html no GitHub. Não reimporte CSV/JSON, não modifique coleções do Firebase. Teste primeiro em ambiente separado.
+
+SEGURANÇA: permanecem as ressalvas de auditoria sobre a autorização de votos no servidor. Esta é uma otimização de leituras, NÃO uma certificação de segurança para uso oficial.

@@ -1,0 +1,9 @@
+ALTERAÇÃO VISUAL DA URNA — IDENTIFICAÇÃO DO ELEITOR
+
+Ao liberar a urna, o NOME COMPLETO e a TURMA do estudante autorizado aparecem em um painel destacado e permanecem visíveis em todos os cargos até o fim da votação.
+
+A saudação personalizada e a mensagem FIM foram preservadas. Depois do FIM, a identificação é apagada antes da próxima sessão. Não há novas leituras no Firebase nem alteração na lógica de gravação de votos.
+
+ATENÇÃO: O nome fica visível na tela durante o voto. Posicione a urna para preservar o sigilo da escolha do estudante. Teste com eleitores fictícios antes da eleição real.
+
+Arquivo modificado: urna.html. Os demais arquivos foram mantidos da versão de origem.

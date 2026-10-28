@@ -11,6 +11,20 @@
       #login{max-width:760px;margin:42px auto}
       .urna{border:1px solid #aaa}
       .tela{min-height:470px}
+      .boas-vindas{position:relative;overflow:hidden;padding:22px 24px;margin-bottom:22px;border-radius:22px;background:linear-gradient(120deg,#102a43 0%,#194a70 58%,#237a88 100%);color:#fff;box-shadow:0 12px 30px rgba(16,42,67,.18);animation:entradaSuave .6s ease-out both}
+      .boas-vindas:after{content:"✦";position:absolute;right:24px;top:3px;font-size:85px;color:rgba(255,255,255,.09);pointer-events:none}
+      .boas-vindas .saudacao-etiqueta{display:inline-flex;align-items:center;gap:8px;font-size:.77rem;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:#bde9ef}
+      .boas-vindas h2{font-size:clamp(1.4rem,3vw,2.15rem);line-height:1.25;color:#fff;margin:10px 0 8px;overflow-wrap:anywhere}
+      .boas-vindas p{margin:0;color:#e4f1f7;font-size:.98rem;line-height:1.6}
+      .boas-vindas .saudacao-turma{display:inline-block;margin-top:14px;padding:5px 12px;border:1px solid rgba(255,255,255,.32);background:rgba(255,255,255,.1);border-radius:999px;font-size:.82rem;font-weight:700}
+      .identificacao-eleitor{display:flex;align-items:center;gap:14px;padding:15px 19px;margin:0 0 18px;border-radius:16px;background:#f0f7ff;border:2px solid #83b6e5;box-shadow:0 4px 16px rgba(16,42,67,.08)}
+      .identificacao-eleitor .icone-eleitor{font-size:2rem;flex:none}
+      .identificacao-eleitor .rotulo-eleitor{display:block;font-size:.77rem;letter-spacing:.08em;text-transform:uppercase;color:#36556e;font-weight:800}
+      .identificacao-eleitor .nome-eleitor{display:block;font-size:clamp(1.2rem,2.5vw,1.7rem);font-weight:900;line-height:1.25;color:#102a43;overflow-wrap:anywhere}
+      .identificacao-eleitor .turma-eleitor{display:block;color:#36556e;font-size:.9rem;font-weight:650;margin-top:3px}
+      .fim-mensagem{font-size:clamp(1.05rem,2.5vw,1.5rem);line-height:1.5;margin:16px auto 0;max-width:530px;text-align:center;color:#165070;font-weight:700}
+      @keyframes entradaSuave{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+      @media(prefers-reduced-motion:reduce){.boas-vindas{animation:none}}
       @media (min-width:1000px){
         .tecla{font-size:1.55rem;padding:18px}
         .acao{font-size:1.02rem}
@@ -36,6 +50,16 @@
       <section class="urna">
         <div class="tela">
           <div id="votacaoTela">
+            <section id="boasVindas" class="boas-vindas" aria-live="polite" aria-label="Boas-vindas ao estudante">
+              <div class="saudacao-etiqueta">✦ SUA VOZ TEM VALOR</div>
+              <h2 id="saudacaoNome">Bem-vindo à sua eleição!</h2>
+              <p>Hoje você faz parte de uma escolha importante. Vote com consciência: sua voz ajuda a transformar a escola.</p>
+              <span id="saudacaoTurma" class="saudacao-turma hidden"></span>
+            </section>
+            <section id="identificacaoEleitor" class="identificacao-eleitor" aria-label="Identificação do eleitor que está votando">
+              <span class="icone-eleitor" aria-hidden="true">👤</span>
+              <div><span class="rotulo-eleitor">ELEITOR(A) EM VOTAÇÃO</span><strong class="nome-eleitor" id="nomeEleitorVotando"></strong><span class="turma-eleitor" id="turmaEleitorVotando"></span></div>
+            </section>
             <div class="small">SEU VOTO PARA</div>
             <div class="cargo" id="cargoAtual"></div>
             <div class="numero-display" id="display">__</div>
@@ -45,7 +69,9 @@
             </div>
             <div id="aviso" class="notice hidden"></div>
           </div>
-          <div id="fim" class="fim hidden">FIM</div>
+          <div id="fim" class="fim hidden">FIM
+            <div class="fim-mensagem" id="fimMensagem">Seu voto foi registrado. Obrigado por fazer parte desta escolha!</div>
+          </div>
         </div>
       </section>
       <aside class="teclado">
@@ -128,11 +154,16 @@
       document.getElementById("urnaArea").classList.remove("hidden");
       document.getElementById("fim").classList.add("hidden");
       document.getElementById("votacaoTela").classList.remove("hidden");
-      document.getElementById("eleitorInfo")?.remove();
-      const info=document.createElement("div");
-      info.className="notice";info.id="eleitorInfo";
-      info.innerHTML=`<strong>${esc(eleitor.nome)}</strong> • ${esc(eleitor.turma)}<br><span class="small">${cargos.length} cargo(s) disponível(is).</span>`;
-      document.getElementById("votacaoTela").prepend(info);
+      // Saudação personalizada sem novas leituras no Firebase e sem exibir o RA.
+      // textContent evita interpretar nomes ou turmas como HTML.
+      const nomeCompleto=String(eleitor.nome||"").trim()||"Estudante";
+      document.getElementById("nomeEleitorVotando").textContent=nomeCompleto;
+      document.getElementById("turmaEleitorVotando").textContent=eleitor.turma?`Turma: ${eleitor.turma}`:"";
+      const primeiroNome=nomeCompleto.split(/\s+/)[0];
+      document.getElementById("saudacaoNome").textContent=`Olá, ${primeiroNome}! Este momento é seu. ✨`;
+      const turmaEl=document.getElementById("saudacaoTurma");
+      turmaEl.textContent=eleitor.turma?`Turma ${eleitor.turma} · ${cargos.length} cargo(s) para votar`:`${cargos.length} cargo(s) para votar`;
+      turmaEl.classList.remove("hidden");
       await carregarCargo();
     }catch(err){
       console.error(err);loginMsg(err.message||"Erro ao liberar eleitor.");sessaoEmAndamento=false;
@@ -142,12 +173,22 @@
     encerrando=true;
     document.getElementById("votacaoTela").classList.add("hidden");
     document.getElementById("fim").classList.remove("hidden");
+    const primeiroNome=String(eleitor?.nome||"").trim().split(/\s+/)[0];
+    document.getElementById("fimMensagem").textContent=primeiroNome
+      ? `${primeiroNome}, sua participação faz a diferença! Seu voto foi registrado. Obrigado por ajudar a construir o futuro da escola. ✨`
+      : "Seu voto foi registrado. Obrigado por ajudar a construir o futuro da escola! ✨";
     // O gestor detecta a conclusão pelos cargos votados e libera a próxima sessão.
     // Nunca redirecionar para index.html: a urna deve ficar pronta para o próximo eleitor.
     setTimeout(()=>{
       document.getElementById("urnaArea").classList.add("hidden");
       document.getElementById("login").classList.remove("hidden");
       document.getElementById("loginMsg").textContent="Aguardando próximo eleitor...";
+      document.getElementById("nomeEleitorVotando").textContent="";
+      document.getElementById("turmaEleitorVotando").textContent="";
+      document.getElementById("saudacaoNome").textContent="Bem-vindo à sua eleição!";
+      document.getElementById("saudacaoTurma").textContent="";
+      document.getElementById("saudacaoTurma").classList.add("hidden");
+      document.getElementById("fimMensagem").textContent="Seu voto foi registrado. Obrigado por fazer parte desta escolha!";
       tokenSessao=null;eleitor=null;encerrando=false;sessaoEmAndamento=false;
     },4500);
   }

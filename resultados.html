@@ -196,7 +196,7 @@
           </div>
 
           <p class="small-result" style="margin-top:14px">
-            Atualização automática a cada 15 segundos.
+            Para economizar leituras do Firebase, a participação é consultada ao abrir a página ou quando você solicitar. <button id="atualizarParticipacaoBtn" class="btn btn-light" type="button">Atualizar participação</button>
           </p>
         </div>
       </div>
@@ -235,7 +235,10 @@
       document.getElementById("loading").classList.add("hidden");
       document.getElementById("closed").classList.remove("hidden");
       await atualizarParticipacao();
-      setInterval(()=>{if(!document.hidden) atualizarParticipacao();},120000);
+      document.getElementById("atualizarParticipacaoBtn").addEventListener("click", async (event)=>{
+        const botao=event.currentTarget; botao.disabled=true;
+        try { await atualizarParticipacao(); } finally { botao.disabled=false; }
+      });
       return;
     }
 

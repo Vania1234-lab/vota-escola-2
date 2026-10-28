@@ -1,0 +1,5 @@
+SAUDAÇÃO PERSONALIZADA NA URNA
+
+A urna agora exibe saudação elegante com primeiro nome e turma do eleitor autorizado, e agradecimento no FIM. Não altera a lógica de voto, nem regras Firestore. Não acrescenta consultas. O nome desaparece ao retornar para aguardando próximo eleitor após 4,5 segundos.
+
+ATENÇÃO: Esta versão mantém as limitações de segurança da pré-auditoria. Não está certificada para eleição oficial. Teste em ambiente separado antes de usar com alunos.

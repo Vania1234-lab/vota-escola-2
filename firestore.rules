@@ -22,6 +22,15 @@ service cloud.firestore {
       allow read: if true;
       allow create: if gestor() && doc != 'resultadoPublico';
       allow update: if doc == 'eleicao' && gestor() && (
+        // Recuperação excepcional: gestor reautenticado; preserva todos os documentos históricos.
+        (resource.data.get('closed', false) == true
+          && request.resource.data.get('closed', false) == false
+          && senhaRecente()
+          && request.resource.data.get('votingOpen', false) == true
+          && request.resource.data.get('registrationOpen', false) == false
+          && request.resource.data.get('resultsReleased', false) == false
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['closed','votingOpen','registrationOpen','resultsReleased','recuperadaAposTesteEm']))
+        ||
         (resource.data.get('closed', false) != true && request.resource.data.get('closed', false) != true && request.resource.data.get('resultsReleased', false) != true)
         ||
         (resource.data.get('closed', false) != true && request.resource.data.get('closed', false) == true && senhaRecente() && request.resource.data.get('votingOpen', false) == false && request.resource.data.get('registrationOpen', false) == false && request.resource.data.get('resultsReleased', false) == false)

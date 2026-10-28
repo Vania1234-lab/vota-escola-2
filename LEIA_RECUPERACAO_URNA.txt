@@ -1,0 +1,10 @@
+RECUPERAÇÃO DA VOTAÇÃO APÓS TESTE — VOTA ESCOLA 2
+
+1. FAÇA BACKUP dos documentos do Firestore antes de qualquer operação.
+2. A atualização exige publicar as regras firestore.rules no Firebase Console > Firestore Database > Regras e publicar gestor.html no GitHub Pages. NÃO importe candidaturas nem eleitores novamente.
+3. No painel do gestor, após login, se a eleição estiver encerrada, aparecerá "Reabrir votação após teste". Digite a senha do gestor, confirme duas vezes e aguarde a confirmação.
+4. A operação reabre a votação, mantém inscrições fechadas e oculta os resultados. Não apaga votos, participação, candidaturas ou eleitores.
+5. Recarregue a urna (Ctrl+F5). Confira o status de cada urna e se não há sessão anterior "liberada". Se uma sessão antiga estiver ocupada, use o cancelamento da sessão pelo gestor, nunca apague votos.
+6. ATENÇÃO: votos feitos no teste permanecem registrados. O eleitor que já votou em um cargo não poderá votar novamente nesse cargo. Para uma eleição oficial limpa, o recomendado é um novo projeto/instância de eleição e importar apenas os cadastros necessários, SEM misturar votos de teste com votos oficiais.
+7. Não testado com o Firebase ao vivo nem com 300 estudantes. Testar primeiro em projeto de homologação, inclusive permissões, falha de internet e bloqueio de voto duplicado.
+8. A recuperação excepcional altera a política anterior de encerramento definitivo. Após o uso, considere remover o botão e a permissão de reabertura das regras antes da eleição oficial.
