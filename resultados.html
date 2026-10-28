@@ -121,7 +121,10 @@
       .pie::after{width:122px;height:122px}
     }
 
-  </style>
+    .ve-graf-publico{margin-top:20px;padding:14px;border:1px solid #dfe7ef;border-radius:14px;background:#f8fafc}
+  .ve-graf-publico h4{margin:0 0 14px}.ve-graf-item{margin:10px 0}.ve-graf-label{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.87rem}
+  .ve-graf-trilho{background:#e4eaf0;height:15px;border-radius:20px;overflow:hidden;margin-top:5px}.ve-graf-preenchimento{height:100%;border-radius:20px}
+</style>
 </head>
 <body>
 <header>
@@ -247,7 +250,9 @@
     document.getElementById("electionName").textContent=
       publico.electionName||election.name||"Eleição do Grêmio Estudantil";
 
-    const dados=Array.isArray(publico.cargos)?publico.cargos:[];
+    // Não exibir cargos antigos de fotografias públicas, nem cargos sem candidatos aprovados.
+    const permitidos=new Set(["Presidente","Diretor de Comunicação","Diretor de Cultura","Diretor de Esportes","Diretor de Eventos","Diretor de Meio Ambiente"].map(x=>x.toLocaleLowerCase("pt-BR")));
+    const dados=(Array.isArray(publico.cargos)?publico.cargos:[]).filter(d=>permitidos.has(String(d.cargo||"").trim().toLocaleLowerCase("pt-BR")) && Array.isArray(d.candidatos) && d.candidatos.length>0);
     renderChapa(dados);
     renderCargos(dados);
 
@@ -366,6 +371,9 @@
           }).join("") : `<div class="notice">Nenhum candidato aprovado para este cargo.</div>`}
         </div>
 
+        <div class="ve-graf-publico"><h4>Gráfico de votos</h4>
+          ${(()=>{const itens=[...(d.candidatos||[]).map(c=>({nome:`Nº ${c.numero} — ${c.nome}`,valor:Number(c.votos||0),cor:'#2364a0'})),{nome:'Brancos',valor:Number(d.brancos||0),cor:'#899bad'},{nome:'Nulos',valor:Number(d.nulos||0),cor:'#cf872d'}];const max=Math.max(1,...itens.map(i=>i.valor));return itens.map(i=>`<div class="ve-graf-item"><div class="ve-graf-label"><span>${esc(i.nome)}</span><strong>${i.valor}</strong></div><div class="ve-graf-trilho"><div class="ve-graf-preenchimento" style="width:${Math.min(100,i.valor/max*100)}%;background:${i.cor}"></div></div></div>`).join('');})()}
+        </div>
         <div class="summary-row">
           <span><strong>Válidos:</strong> ${d.validos||0}</span>
           <span><strong>Brancos:</strong> ${d.brancos||0}</span>

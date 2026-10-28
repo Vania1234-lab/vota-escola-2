@@ -187,7 +187,11 @@ th{background:#f6f8fa}
           .gestor-menu{grid-template-columns:1fr;gap:16px}
           .gestor-menu-btn{min-height:120px}
         }
-        </style></head><body>
+        </style><style>
+.ve-graf-card{border:1px solid #dce6ef;border-radius:16px;padding:20px;margin:18px 0;background:#fff}
+.ve-graf-card h3{margin:0 0 8px}.ve-graf-linha{margin:13px 0}.ve-graf-topo{display:flex;justify-content:space-between;gap:12px;font-size:.9rem;flex-wrap:wrap}
+.ve-graf-trilho{height:16px;border-radius:20px;background:#e6edf3;overflow:hidden;margin-top:6px}.ve-graf-barra{height:100%;border-radius:20px}
+</style></head><body>
 <header><div class="brand"><span class="ballot">📊</span> Vota Escola • Comissão Eleitoral</div></header>
 <main class="container">
   <section id="loginGestor" class="card" style="max-width:520px;margin:40px auto">
@@ -265,6 +269,7 @@ th{background:#f6f8fa}
   <section id="ambienteApuracao" class="card ambiente-gestor hidden">
     <div class="ambiente-topo"><h2>Apuração</h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
     <div id="locked" class="notice">Os resultados ficam ocultos enquanto não forem liberados.</div>
+    <button id="atualizarApuracao" type="button" class="btn btn-light hidden">↻ Atualizar gráficos e apuração</button>
     <div id="results" class="hidden"></div>
   </section>
 
@@ -395,7 +400,7 @@ th{background:#f6f8fa}
 
  async function gerarResultadoPublico(){
    const [cargos,candidaturas,votos]=await Promise.all([
-     S.getCargos(),
+     S.getCargosVotaveis(),
      S.listCandidaturas(),
      S.listVotes()
    ]);
@@ -992,29 +997,40 @@ th{background:#f6f8fa}
  }
  async function renderResults(){
    locked.classList.add("hidden"); results.classList.remove("hidden");
-   const votos=await S.listVotes(), cargos=await S.getCargos(), cand=await S.listCandidaturas();
-   let html="";
-   for(const cargo of cargos){
-     const vs=votos.filter(v=>v.cargo===cargo);
-     const aprov=[];
-     cand.filter(c=>c.status==="aprovado").forEach(c=>(c.cargos||[]).forEach(x=>{if(x.cargo===cargo) aprov.push({id:c.id,nome:c.nome,numero:x.numero})}));
-     const counts={};
-     aprov.forEach(c=>counts[c.id]=0);
-     vs.filter(v=>v.tipo==="valido").forEach(v=>counts[v.candidatoId]=(counts[v.candidatoId]||0)+1);
-     const branco=vs.filter(v=>v.tipo==="branco").length, nulo=vs.filter(v=>v.tipo==="nulo").length;
-     const sorted=[...aprov].sort((a,b)=>(counts[b.id]||0)-(counts[a.id]||0));
-     const max=Math.max(1,...sorted.map(c=>counts[c.id]||0));
-     html+=`<h3>${cargo}</h3>`;
-     if(!sorted.length) html+="<p class='muted'>Nenhum candidato aprovado.</p>";
-     else sorted.forEach((c,i)=>{
-       const n=counts[c.id]||0, pct=(n/max*100).toFixed(0);
-       html+=`<div style="margin:10px 0"><strong>${i===0?"🏆 ":""}${c.numero} • ${c.nome}</strong> — ${n} voto(s)
-       <div class="result-bar"><div style="width:${pct}%"></div></div></div>`;
-     });
-     html+=`<p class="small">Brancos: ${branco} • Nulos: ${nulo} • Total: ${vs.length}</p><hr>`;
-   }
-   results.innerHTML=html;
+   const btn=document.getElementById("atualizarApuracao");
+   btn.classList.remove("hidden"); btn.disabled=true;
+   results.innerHTML='<p class="muted">Carregando apuração e gráficos...</p>';
+   try{
+     const [votos,cargos,cand]=await Promise.all([S.listVotes(),S.getCargosVotaveis(),S.listCandidaturas()]);
+     const norm=v=>String(v??"").trim().toLocaleLowerCase("pt-BR");
+     const numero=v=>{const d=String(v??"").replace(/\D/g,"");return d?d.padStart(2,"0").slice(-2):"";};
+     const escGraf=v=>esc(String(v??""));
+     const grafico=(rotulo,valor,maximo,cor)=>{
+       const largura=maximo>0?Math.max(0,Math.min(100,valor/maximo*100)):0;
+       return `<div class="ve-graf-linha"><div class="ve-graf-topo"><span>${escGraf(rotulo)}</span><strong>${valor} voto(s)</strong></div><div class="ve-graf-trilho"><div class="ve-graf-barra" style="width:${largura}%;background:${cor}"></div></div></div>`;
+     };
+     let html='<p class="muted">Gráficos gerados sob demanda. Votos já registrados não são alterados.</p>';
+     for(const cargo of cargos){
+       const aprov=[];
+       cand.filter(c=>norm(c.status)==="aprovado").forEach(c=>(c.cargos||[]).forEach(x=>{
+         if(norm(x.cargo)===norm(cargo)) aprov.push({id:c.id,nome:c.nome,numero:numero(x.numero)});
+       }));
+       if(!aprov.length) continue;
+       const vs=votos.filter(v=>norm(v.cargo)===norm(cargo));
+       const contagem=aprov.map(c=>({...c,votos:vs.filter(v=>v.tipo==="valido" && (v.candidatoId?String(v.candidatoId)===String(c.id):numero(v.numero)===c.numero)).length})).sort((a,b)=>b.votos-a.votos||a.nome.localeCompare(b.nome,"pt-BR"));
+       const branco=vs.filter(v=>v.tipo==="branco").length;
+       const nulo=vs.filter(v=>v.tipo==="nulo").length;
+       const max=Math.max(1,branco,nulo,...contagem.map(c=>c.votos));
+       html+=`<section class="ve-graf-card"><h3>${escGraf(cargo)}</h3><p class="muted">${vs.length} voto(s) registrado(s) • ${contagem.length} candidato(s)</p>`;
+       contagem.forEach(c=>html+=grafico(`${c.numero} — ${c.nome}`,c.votos,max,"#1e609f"));
+       html+=grafico("Votos em branco",branco,max,"#8295a8")+grafico("Votos nulos",nulo,max,"#d38a2f");
+       html+='</section>';
+     }
+     results.innerHTML=html||'<p>Nenhum cargo com candidato aprovado.</p>';
+   }catch(err){console.error(err);results.innerHTML=`<div class="notice error">Falha ao carregar apuração: ${esc(err?.message||err)}</div>`;}
+   finally{btn.disabled=false;}
  }
+ document.getElementById("atualizarApuracao").addEventListener("click",renderResults);
  document.getElementById("filtroCandidaturasTela").addEventListener("change",refresh);
  await refresh();
  } // /* fim iniciarPainel */

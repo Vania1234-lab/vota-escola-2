@@ -1,0 +1,11 @@
+VOTA ESCOLA 2 — ATUALIZAÇÃO DE GRÁFICOS E CARGOS
+
+- gestor.html: apuração apresenta gráficos por candidato e votos brancos/nulos, com botão Atualizar gráficos e apuração.
+- resultados.html: gráficos por cargo na página pública, apenas quando os resultados estiverem liberados.
+- gestor.html: geração da fotografia pública considera apenas cargos com ao menos um candidato aprovado.
+- resultados.html: filtra fotografias públicas antigas e não mostra Secretário, Tesoureiro ou Diretor de Direitos Humanos.
+- core.js: cadastro de candidaturas já restringe a lista aos seis cargos ativos.
+- Nenhum documento é excluído do Firebase e nenhum voto ou eleitor é reiniciado.
+- Para atualizar os resultados públicos depois de publicar, gestor deve clicar Salvar configuração com Resultados liberados marcado.
+- A apuração é consultada sob demanda, evitando leituras constantes.
+- Não execute novamente o importador de candidaturas.
