@@ -5,6 +5,8 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email == 'vaniaoliveirasilva@professor.educacao.sp.gov.br';
     }
     function autenticado() { return request.auth != null; }
+    function senhaRecente() { return gestor() && request.auth.token.auth_time is int && request.time.toMillis() / 1000 - request.auth.token.auth_time < 300; }
+    function votacaoAberta() { return exists(/databases/$(database)/documents/config/eleicao) && get(/databases/$(database)/documents/config/eleicao).data.get('votingOpen', false) == true && !encerrada(); }
     function encerrada() {
       return exists(/databases/$(database)/documents/config/eleicao)
         && get(/databases/$(database)/documents/config/eleicao).data.get('closed', false) == true;
@@ -18,17 +20,16 @@ service cloud.firestore {
     }
     match /config/{doc} {
       allow read: if true;
-      allow create: if gestor();
-      allow update: if gestor() && (
-        (doc == 'eleicao' && (
-          resource.data.get('closed', false) != true
-          || (request.resource.data.get('closed', false) == true
-              && request.resource.data.get('votingOpen', false) == false
-              && request.resource.data.get('registrationOpen', false) == false)
-        ))
-        || (doc == 'resultadoPublico' && encerrada())
-        || (doc != 'eleicao' && doc != 'resultadoPublico')
-      );
+      allow create: if gestor() && doc != 'resultadoPublico';
+      allow update: if doc == 'eleicao' && gestor() && (
+        (resource.data.get('closed', false) != true && request.resource.data.get('closed', false) != true && request.resource.data.get('resultsReleased', false) != true)
+        ||
+        (resource.data.get('closed', false) != true && request.resource.data.get('closed', false) == true && senhaRecente() && request.resource.data.get('votingOpen', false) == false && request.resource.data.get('registrationOpen', false) == false && request.resource.data.get('resultsReleased', false) == false)
+        ||
+        (resource.data.get('closed', false) == true && request.resource.data.get('closed', false) == true && request.resource.data.get('votingOpen', false) == false && request.resource.data.get('registrationOpen', false) == false && resource.data.get('resultsReleased', false) == false && request.resource.data.get('resultsReleased', false) == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['resultsReleased']))
+      ) || (doc == 'resultadoPublico' && gestor() && encerrada() && !get(/databases/$(database)/documents/config/eleicao).data.get('resultsReleased', false))
+        || (doc != 'eleicao' && doc != 'resultadoPublico' && gestor());
+      allow create: if doc == 'resultadoPublico' && gestor() && encerrada() && !get(/databases/$(database)/documents/config/eleicao).data.get('resultsReleased', false);
       allow delete: if false;
     }
     match /candidaturas/{id} {
@@ -55,7 +56,11 @@ service cloud.firestore {
       allow create, update, delete: if gestor();
     }
     match /votos/{id} {
-      allow create: if autenticado() && !encerrada()
+      allow create: if autenticado() && votacaoAberta()
+        && request.resource.data.keys().hasOnly(['tipo','candidatoId','candidatoNome','numero','cargo','createdAt'])
+        && request.resource.data.tipo in ['valido','branco','nulo']
+        && request.resource.data.cargo is string
+        && request.resource.data.cargo.size() > 0
         && !('ra' in request.resource.data)
         && !('nome' in request.resource.data)
         && !('turma' in request.resource.data);

@@ -355,6 +355,9 @@
       const voteRef=this.db.collection("votos").doc();
 
       await this.db.runTransaction(async tx=>{
+        const configSnap=await tx.get(this.db.collection("config").doc("eleicao"));
+        const election=configSnap.exists ? configSnap.data() : {};
+        if(election.closed===true || election.votingOpen!==true) throw new Error("ELEICAO_FECHADA");
         const s=await tx.get(voterRef);
         if(!s.exists) throw new Error("ELEITOR_NAO_CADASTRADO");
 

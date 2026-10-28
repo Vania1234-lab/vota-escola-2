@@ -1,0 +1,26 @@
+VOTA ESCOLA 2 — CORRECOES PARCIAIS E ALERTAS DE SEGURANCA
+
+Mudancas nesta versao:
+1. A transacao do voto consulta config/eleicao e recusa gravacao quando votacao fechada.
+2. Encerramento exige senha novamente; regras propostas exigem autenticacao recente (5 minutos).
+3. Caso a conexao caia apos o encerramento, o gestor pode usar "Recuperar apuracao encerrada" sem reabrir a votacao.
+4. Regras propostas bloqueiam alteracao posterior do estado encerrado e gravacao de novos votos apos fechamento.
+5. A publicacao do resultado permanece bloqueada ate o encerramento.
+
+ATENCAO: NAO E UMA AUDITORIA FINAL NEM GARANTIA DE SEGURANCA.
+O modelo atual usa urnas com login anonimo e gravacao direta de votos no Firestore.
+As regras nao conseguem comprovar que cada documento de voto corresponde a uma
+urna autorizada e a um eleitor, sem um mecanismo de backend confiavel.
+Um usuario mal-intencionado pode criar votos artificiais com acesso direto ao SDK.
+A recuperacao da apuracao ainda e feita no navegador, nao por backend atomico.
+A integridade completa requer migrar o registro de voto e o encerramento para
+um backend confiavel (por exemplo Cloud Functions com verificacao de autorizacao),
+o que pode exigir configuracao adicional e custos.
+
+ANTES DE PUBLICAR:
+- Fazer backup do projeto e guardar o ZIP anterior.
+- Publicar e testar firestore.rules no emulador, nunca primeiro na eleicao real.
+- Testar com projeto Firebase separado, incluindo 300 eleitores simulados.
+- Conferir no console que Authentication anonimo esta ativo.
+- Nao importar novamente candidaturas ou eleitores no projeto real.
+- Nao usar esta versao para eleicao oficial sem completar os testes e a revisao do backend.
