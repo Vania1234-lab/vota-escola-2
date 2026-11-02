@@ -1,0 +1,98 @@
+CORREÇÃO DOS BOTÕES — 02/11/2026
+
+Instalação com as urnas livres:
+Substitua core.js, gestor.html, urna.html e styles.css.
+Os demais arquivos do projeto completo também estão incluídos.
+MANTENHA O firebase-config.js QUE JÁ ESTÁ FUNCIONANDO NO SEU SITE.
+A configuração recuperada neste ZIP é a original de vota-escola-2.
+Se estiver usando vota-3, preserve a configuração de vota-3.
+Não reimporte eleitores ou candidaturas para aplicar esta correção.
+Recarregue o gestor e as quatro urnas após atualizar os arquivos.
+
+COMO USAR
+Liberar: escolha o identificador da urna e clique em Liberar na linha do
+eleitor. A página informa o resultado da operação. A transação continua
+impedindo liberação duplicada e urna ocupada.
+
+Cancelar: clique em Cancelar liberação interrompida. A página consulta a
+sessão atual e apresenta um aviso. Confira que não há ninguém votando e
+clique em Confirmar cancelamento na própria página.
+Se a urna estiver livre, uma mensagem informa isso.
+Os votos já registrados permanecem guardados.
+Uma confirmação antiga não pode cancelar a liberação de outro eleitor.
+A urna volta à espera. Ao liberar novamente quem votou parcialmente,
+a votação continua nos cargos que faltam.
+
+Se o Firebase recusar uma operação, o motivo e o código são exibidos na
+página (por exemplo: permissão, cota ou conexão). A atualização dos arquivos
+não altera as permissões nem a cota do Firebase.
+
+O QUE FOI CORRIGIDO
+- Liberar não depende mais de receber a primeira atualização do listener.
+- Clique de Liberar usa delegação de eventos na lista.
+- Cancelar consulta a sessão atual em vez de depender só do estado da tela.
+- Confirmação de cancelamento na página, sem diálogo nativo.
+- Resultado e erros das ações ficam visíveis.
+- Botões ficam bloqueados apenas durante operação ou ocupação conhecida.
+- Cache dos scripts e do CSS passa a ter identificador de versão.
+- Urna trata a interrupção da sessão sem exigir recarregar a página.
+
+VALIDAÇÃO LOCAL
+Foram executados os manipuladores de Liberar e Cancelar de gestor.html,
+com DOM e Firestore simulados, cobrindo liberação antes de conectar o
+monitor, confirmação, sessão livre, recusa de permissão com nova tentativa,
+proteção contra confirmação antiga e retomada de votação parcial.
+Também passou novamente o cenário de 300 eleitores, 4 urnas, 6 cargos,
+1.800 novos votos e preservação de 60 votos históricos fictícios.
+Todas as páginas passaram na verificação de sintaxe JavaScript.
+
+Limites: não houve acesso ao banco real, execução das regras publicadas,
+medição de faturamento ou verificação em navegador gráfico.
+
+Métricas técnicas do ensaio:
+{
+  "status": "PASS",
+  "electors": 300,
+  "urnas": 4,
+  "cargos": 6,
+  "newVotes": 1800,
+  "historicalVotesPreserved": 60,
+  "fimScreens": 300,
+  "checks": [
+    "300 electors completed all 6 cargos through actual urna inline handlers",
+    "4 urnas simultaneous; controller closes all four without selection",
+    "zero idle polling reads",
+    "double authorization rejected",
+    "transaction retry prevents duplicate vote",
+    "cancelled token rejected",
+    "closed election rejects vote",
+    "historical data unchanged",
+    "votes contain no RA/name/turma",
+    "one candidate catalog query per page"
+  ],
+  "controlTests": [
+    "real gestor release/cancel event handlers executed",
+    "release works before listener connection",
+    "inline cancel confirmation preserves votes",
+    "permission refusal is visible and retry works",
+    "stale cancel confirmation preserves next session",
+    "actual urna returns to waiting on cancel and resumes remaining cargos"
+  ],
+  "metrics": {
+    "documentReads": 6682,
+    "queryReads": 132,
+    "listenerReads": 3335,
+    "writes": 4527,
+    "transactionRetries": 2,
+    "candidateQueries": 11
+  },
+  "workloadMetrics": {
+    "documentReads": 6600,
+    "queryReads": 0,
+    "listenerReads": 3300,
+    "writes": 4500,
+    "transactionRetries": 0,
+    "candidateQueries": 0
+  },
+  "limits": "In-memory Firestore API simulation, not Google Firestore emulator or live Firebase. Security rules, real network, billing and browser layout were not executed."
+}

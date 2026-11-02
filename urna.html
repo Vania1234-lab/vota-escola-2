@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="pt-BR"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Urna Eletrônica • Vota Escola</title><link rel="stylesheet" href="styles.css">
+<title>Urna Eletrônica • Vota Escola</title><link rel="stylesheet" href="styles.css?v=20261102-botoes2">
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
@@ -93,11 +93,11 @@
     </p>
   </div>
 </main>
-<script src="firebase-config.js"></script><script src="core.js"></script>
+<script src="firebase-config.js"></script><script src="core.js?v=20261102-botoes2"></script>
 <script>
 (async()=>{
  try{
- const S=VotaEscola.Store; await S.init();
+ const S=VotaEscola.Store; await S.init(); S.enableVotingCache();
  // A urna precisa de identidade Firebase para ler e registrar participação.
  if(S.mode!=="demo"){
    if(!firebase.auth().currentUser){
@@ -133,21 +133,23 @@
   if(!/^[a-z0-9_-]{1,40}$/.test(urnaId)) throw new Error("Identificador da urna inválido.");
   document.getElementById("urnaIdentificacao").textContent="Equipamento: "+urnaId;
   let tokenSessao=null, sessaoEmAndamento=false, encerrando=false;
-  async function verificarLiberacao(){
+  let sessaoCancelada=false;
+  const sessoesConcluidas=new Set();
+  async function verificarLiberacao(sessao){
     if(sessaoEmAndamento || encerrando) return;
-    const sessao=await S.getUrnaSession(urnaId);
-    if(!sessao || sessao.status!=="liberada") return;
+    if(!sessao || sessao.status!=="liberada" || sessoesConcluidas.has(sessao.token)) return;
     sessaoEmAndamento=true;
     try{
       const voter=await S.getVoter(sessao.ra);
       if(!voter || voter.ativo===false) throw new Error("Eleitor indisponível.");
-      // Atualiza a lista antes de cada eleitor: novas aprovações passam a valer.
+      // Reutiliza o catálogo desta página; recarregar urnas ociosas após alterar candidaturas.
       todosCargos=await S.getCargosVotaveis();
       if(!todosCargos.length) throw new Error("Não há cargos com candidatos aprovados para votação.");
       const jaVotados=Array.isArray(voter.votedCargos)?voter.votedCargos:[];
       cargos=todosCargos.filter(c=>!jaVotados.includes(c));
       if(!cargos.length) throw new Error("Eleitor já concluiu todos os cargos. Avise o gestor.");
       tokenSessao=sessao.token;
+      sessaoCancelada=false;
       eleitor={ra:String(sessao.ra),nome:voter.nome||"",turma:voter.turma||""};
       idx=0;
       document.getElementById("login").classList.add("hidden");
@@ -171,6 +173,7 @@
   }
   async function finalizarVotacao(){
     encerrando=true;
+    sessoesConcluidas.add(tokenSessao);
     document.getElementById("votacaoTela").classList.add("hidden");
     document.getElementById("fim").classList.remove("hidden");
     const primeiroNome=String(eleitor?.nome||"").trim().split(/\s+/)[0];
@@ -190,20 +193,51 @@
       document.getElementById("saudacaoTurma").classList.add("hidden");
       document.getElementById("fimMensagem").textContent="Seu voto foi registrado. Obrigado por fazer parte desta escolha!";
       tokenSessao=null;eleitor=null;encerrando=false;sessaoEmAndamento=false;
+      consultarLiberacaoComControle(ultimaSessao);
     },4500);
   }
-  // Uma leitura por urna a cada 6 segundos, apenas quando a aba está visível.
-  // Impede consultas sobrepostas em conexões lentas.
+  // Sem consultas periódicas. O listener recebe apenas mudanças de sessão.
+  let ultimaSessao=null;
   let consultaLiberacaoPendente=false;
-  async function consultarLiberacaoComControle(){
-    if(consultaLiberacaoPendente || document.hidden || sessaoEmAndamento || encerrando)return;
+  function voltarEsperaAposCancelamento(){
+    document.getElementById("urnaArea").classList.add("hidden");
+    document.getElementById("login").classList.remove("hidden");
+    document.getElementById("fim").classList.add("hidden");
+    document.getElementById("loginMsg").textContent="Liberação interrompida pelo gestor. Aguardando próximo eleitor...";
+    for(const id of ["nomeEleitorVotando","turmaEleitorVotando","saudacaoTurma"])document.getElementById(id).textContent="";
+    tokenSessao=null;eleitor=null;sessaoEmAndamento=false;encerrando=false;sessaoCancelada=false;
+    consultarLiberacaoComControle(ultimaSessao);
+  }
+  async function consultarLiberacaoComControle(sessao){
+    ultimaSessao=sessao;
+    if(sessaoEmAndamento && !encerrando && tokenSessao && (sessao?.token!==tokenSessao || sessao?.status==="cancelada")){
+      sessaoCancelada=true;
+      if(!document.getElementById("confirma").disabled)voltarEsperaAposCancelamento();
+      return;
+    }
+    if(consultaLiberacaoPendente || sessaoEmAndamento || encerrando)return;
     consultaLiberacaoPendente=true;
-    try{await verificarLiberacao();}
+    try{await verificarLiberacao(sessao);}
     catch(e){loginMsg("Erro de conexão: "+e.message);}
     finally{consultaLiberacaoPendente=false;}
   }
-  setInterval(consultarLiberacaoComControle,6000);
-  await verificarLiberacao();
+  let pararSessao=null;
+  function acompanharSessao(){
+    pararSessao?.();
+    pararSessao=S.watchUrnaSession(urnaId,consultarLiberacaoComControle,e=>loginMsg("Falha na conexão: "+e.message+". Use Verificar liberação para reconectar."));
+  }
+  const verificar=document.createElement("button");
+  verificar.type="button";verificar.className="btn";verificar.textContent="Verificar liberação";
+  verificar.onclick=async()=>{
+    verificar.disabled=true;
+    try{acompanharSessao();await consultarLiberacaoComControle(await S.getUrnaSession(urnaId));}
+    catch(e){loginMsg("Falha na conexão: "+e.message);}
+    finally{verificar.disabled=false;}
+  };
+  document.getElementById("login").appendChild(verificar);
+  acompanharSessao();
+  window.addEventListener("pagehide",()=>pararSessao?.());
+  window.addEventListener("pageshow",event=>{if(event.persisted)acompanharSessao();});
 
  async function carregarCargo(){
    numero=""; branco=false; candidato=null;
@@ -305,6 +339,7 @@
  };
 
  document.getElementById("confirma").onclick=async()=>{
+   if(document.getElementById("confirma").disabled || !sessaoEmAndamento || encerrando)return;
    if(!branco && numero.length!==2) return;
 
    const cargoAtual=cargos[idx];
@@ -330,6 +365,8 @@
        numero:numeroVoto
      },urnaId,tokenSessao);
 
+     if(sessaoCancelada){voltarEsperaAposCancelamento();return;}
+
      VotaEscola.trululu();
      idx++;
 
@@ -339,6 +376,7 @@
        await carregarCargo();
      }
    }catch(err){
+     if(sessaoCancelada){voltarEsperaAposCancelamento();return;}
      console.error(err);
      const msg=String(err?.message||err);
      if(msg.includes("CARGO_JA_VOTADO")){

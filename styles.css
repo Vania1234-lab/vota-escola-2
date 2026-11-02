@@ -159,3 +159,5 @@ th{background:#f6f8fa}
 .candidate-number-box strong{font-size:2rem;line-height:1;color:#174f8f;letter-spacing:.04em}
 .candidate-role-box strong{font-size:1.05rem;color:#1d2b38}
 @media(max-width:620px){.candidate-election-data{grid-template-columns:1fr}.candidate-number-box strong{font-size:1.8rem}}
+
+button:disabled,.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}

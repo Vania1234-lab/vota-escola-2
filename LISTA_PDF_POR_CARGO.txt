@@ -1,0 +1,31 @@
+LISTA DE CANDIDATOS POR CARGO
+
+Atualize gestor.html, preservando core.js e os demais arquivos já corrigidos.
+Não altere firebase-config.js para instalar esta função.
+
+1. Entre no painel do gestor.
+2. Abra Candidatos inscritos.
+3. Em Candidaturas no relatório, escolha Somente aprovadas para a lista da
+   votação ou Todas para incluir também as outras situações.
+4. Clique em PDF por cargo.
+5. Na nova aba, clique em Imprimir / Salvar como PDF.
+6. Escolha Salvar como PDF, papel A4 e orientação retrato.
+
+A lista agrupa os candidatos por cargo e mostra número, nome, turma e
+situação. Quem concorre a dois cargos aparece no grupo de cada cargo, com
+o número correspondente. Os cargos seguem a ordem configurada no sistema;
+dentro de cada cargo, os números aparecem em ordem crescente.
+
+A consulta lê os dados do banco conectado ao seu site no momento em que
+você clica no botão. Não usa a planilha ou o JSON histórico de importação.
+A antiga lista detalhada com fotos e propostas continua disponível no botão
+Lista detalhada com propostas.
+
+Se a nova aba não abrir, permita pop-ups para o endereço do seu site.
+Esta função não altera candidaturas, eleitores nem votos.
+
+Validação local: geração do relatório e evento do botão testados em
+JavaScript com DOM simulado, cobrindo múltiplos cargos, números por cargo,
+ordenação, filtros, registros antigos, caracteres especiais e lista vazia.
+Não foi gerado um PDF com dados reais nem inspecionada impressão em
+navegador gráfico.

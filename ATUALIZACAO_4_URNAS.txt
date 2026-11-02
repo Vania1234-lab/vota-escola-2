@@ -1,0 +1,61 @@
+VOTA ESCOLA — ATUALIZAÇÃO PARA QUATRO URNAS
+02/11/2026
+
+Este pacote atualiza apenas core.js, urna.html e gestor.html.
+Foi preparado a partir do ZIP VOTA_ESCOLA_2_DIAGNOSTICO_REABERTURA_GESTOR(2).
+Não é uma migração de banco.
+
+COMO ATUALIZAR
+1. Faça uma cópia dos três arquivos atuais do site.
+2. Entre um eleitor e outro, aguarde as quatro urnas ficarem livres.
+3. Substitua SOMENTE core.js, urna.html e gestor.html pelos deste pacote.
+4. Mantenha o firebase-config.js que já está no site. Ele identifica seu banco
+   atual. Não troque esse arquivo por uma configuração antiga de outro projeto.
+5. Mantenha os arquivos de estilo e as regras do Firestore já publicados.
+6. Recarregue o gestor e as quatro urnas para todos usarem a mesma versão.
+   Não recarregue uma urna enquanto um eleitor está votando.
+   Se o navegador guardar a versão antiga, use Ctrl+Shift+R.
+7. Mantenha o painel do gestor conectado durante a votação.
+
+ENDEREÇOS
+Em cada computador, abra um endereço diferente do MESMO site:
+urna.html?urna=urna-1
+urna.html?urna=urna-2
+urna.html?urna=urna-3
+urna.html?urna=urna-4
+
+No gestor, informe o identificador da urna desejada, localize o eleitor e
+clique em Liberar. As quatro urnas serão acompanhadas, mesmo com outra
+selecionada no painel. Cada eleitor permanece restrito à sessão autorizada.
+A urna mostra FIM após confirmar todos os cargos e aguarda 4,5 segundos
+antes de voltar à espera. O gestor conclui a sessão automaticamente.
+
+O QUE MUDOU
+- Lista de candidatos e configuração dos cargos reutilizadas na página.
+- Sem consultas periódicas de 6 ou 8 segundos ao banco.
+- Liberação e participação acompanhadas por mudanças em tempo real.
+- Gestor acompanha a conclusão das quatro urnas simultaneamente.
+- Botão Verificar liberação na urna para recuperação manual da conexão.
+- Proteção contra confirmação repetida enquanto um voto está sendo gravado.
+
+SE ALTERAR CANDIDATURAS OU CARGOS
+Depois de concluir a alteração, recarregue o gestor e todas as urnas OCIOSAS.
+A lista de apresentação fica guardada na página para economizar leituras.
+Os dados de participação, a sessão e o bloqueio de duplicidade continuam
+sendo verificados nas transações no banco.
+
+DADOS EXISTENTES
+A instalação destes arquivos não executa exclusões, importações ou migrações.
+Não há mudança no formato dos votos, nem na separação entre identidade do
+eleitor e escolha de candidato. Não apague coleções nem reimporte cadastros
+para instalar esta atualização.
+
+CONEXÃO E COTA
+A atualização reduz consultas, mas não recupera a cota já consumida no dia.
+É preciso internet, autenticação válida e cota disponível no projeto atual.
+Se a cota já se esgotou, aguarde a renovação ou resolva o limite do projeto.
+Uma única aba do gestor pode acompanhar as quatro urnas.
+Evite abrir cópias desnecessárias do gestor e das urnas.
+
+VALIDAÇÃO
+Consulte VALIDACAO.txt. Não foram acessados nem alterados dados reais.

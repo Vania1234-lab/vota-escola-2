@@ -22,7 +22,7 @@
 
   const LS = {
     get(k, fallback){ try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } },
-    set(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+    set(k,v){ localStorage.setItem(k, JSON.stringify(v)); window.dispatchEvent(new Event("ve-local-change")); }
   };
 
   function uid(){ return (crypto.randomUUID ? crypto.randomUUID() : Date.now()+"-"+Math.random().toString(16).slice(2)); }
@@ -180,9 +180,10 @@
       const s=await this.getUrnaSession(urnaId);
       if(s?.token===token) LS.set("ve_urna_"+urnaId,{...s,status:"concluida",concluidaEm:now()});
     },
-    async cancelarSessao(urnaId){
+    async cancelarSessao(urnaId,expectedToken){
       const sess=await this.getUrnaSession(urnaId);
       if(!sess || sess.status!=="liberada") throw new Error("URNA_NAO_OCUPADA");
+      if(expectedToken && sess.token!==expectedToken) throw new Error("SESSAO_ALTERADA");
       LS.set("ve_urna_"+urnaId,{...sess,status:"cancelada",canceladaEm:now()});
     },
     async listVotes(){ return LS.get("ve_votos",[]); },
@@ -390,7 +391,7 @@
     },
 
     async getUrnaSession(urnaId){
-      const s=await this.db.collection("urnas").doc(urnaId).get();
+      const s=await this.db.collection("urnas").doc(urnaId).get({source:"server"});
       return s.exists ? s.data() : null;
     },
     async liberarEleitor(urnaId,ra){
@@ -424,11 +425,12 @@
         tx.update(ref,{status:"concluida",concluidaEm:firebase.firestore.FieldValue.serverTimestamp()});
       });
     },
-    async cancelarSessao(urnaId){
+    async cancelarSessao(urnaId,expectedToken){
       const ref=this.db.collection("urnas").doc(urnaId);
       await this.db.runTransaction(async tx=>{
         const s=await tx.get(ref);
         if(!s.exists || s.data().status!=="liberada") throw new Error("URNA_NAO_OCUPADA");
+        if(expectedToken && s.data().token!==expectedToken) throw new Error("SESSAO_ALTERADA");
         tx.update(ref,{status:"cancelada",canceladaEm:firebase.firestore.FieldValue.serverTimestamp()});
       });
     },
@@ -456,6 +458,89 @@
 
   const Store = firebaseReady ? Fire : Demo;
   Store.mode = firebaseReady ? "firebase" : "demo";
+
+  // Cache apenas de dados de apresentação. Eleitor, sessão e validações da
+  // transação SEMPRE continuam sendo consultados no banco.
+  Store.enableVotingCache = function(){
+    if(this._votingCache) return;
+    this._votingCache=new Map();
+    for(const method of ["listCandidaturas","getCargos"]){
+      const original=this[method];
+      this[method]=async function(){
+        if(!this._votingCache.has(method)){
+          const pending=Promise.resolve().then(()=>original.call(this));
+          this._votingCache.set(method,pending);
+          pending.catch(()=>{if(this._votingCache.get(method)===pending)this._votingCache.delete(method);});
+        }
+        return this._votingCache.get(method);
+      };
+    }
+    for(const method of ["saveCandidatura","updateCandidatura"]){
+      const original=this[method];
+      this[method]=async function(...args){
+        const result=await original.apply(this,args);
+        this._votingCache.clear();
+        return result;
+      };
+    }
+  };
+  Store.clearVotingCache=function(){this._votingCache?.clear();};
+  Store.watchDocument=function(collection,id,onValue,onError=console.error){
+    if(this.mode!=="demo"){
+      return this.db.collection(collection).doc(String(id)).onSnapshot(
+        {includeMetadataChanges:true}, snap=>{
+          // Não autorizar a partir de uma sessão antiga do cache ou escrita pendente.
+          if(snap.metadata.fromCache || snap.metadata.hasPendingWrites)return;
+          onValue(snap.exists ? {id:snap.id,...snap.data()} : null);
+        },onError);
+    }
+    let previous,stopped=false;
+    const emit=async()=>{
+      try{
+        const value=collection==="urnas" ? await this.getUrnaSession(id) : await this.getVoter(id);
+        const serialized=JSON.stringify(value);
+        if(!stopped && serialized!==previous){previous=serialized;onValue(value);}
+      }catch(e){if(!stopped)onError(e);}
+    };
+    window.addEventListener("storage",emit);
+    window.addEventListener("ve-local-change",emit);
+    emit();
+    return ()=>{stopped=true;window.removeEventListener("storage",emit);window.removeEventListener("ve-local-change",emit);};
+  };
+  Store.watchUrnaSession=function(id,next,error){return this.watchDocument("urnas",id,next,error);};
+  Store.watchVoter=function(ra,next,error){return this.watchDocument("eleitores",ra,next,error);};
+  // Gestor acompanha TODAS as urnas, inclusive as que não estão selecionadas.
+  Store.monitorUrnas=function(ids,{onSession=()=>{},onVoter=()=>{},onError=console.error}={}){
+    const sessions=new Map(), stops=new Map(), voters=new Map(), closing=new Set();
+    let stopped=false;
+    const stopVoter=id=>{voters.get(id)?.stop();voters.delete(id);};
+    const add=id=>{
+      if(stopped || stops.has(id))return;
+      stops.set(id,this.watchUrnaSession(id,session=>{
+        if(stopped)return;
+        sessions.set(id,session);onSession(id,session);
+        if(session?.status!=="liberada"){stopVoter(id);return;}
+        if(voters.get(id)?.token===session.token)return;
+        stopVoter(id);
+        const entry={token:session.token,stop:()=>{}};
+        voters.set(id,entry);
+        entry.stop=this.watchVoter(session.ra,async voter=>{
+          if(stopped || voters.get(id)!==entry || !voter)return;
+          onVoter({...voter,ra:session.ra});
+          try{
+            const cargos=await this.getCargosVotaveis();
+            if(stopped || voters.get(id)!==entry || !cargos.length || !cargos.every(c=>(voter.votedCargos||[]).includes(c)))return;
+            if(closing.has(session.token))return;
+            closing.add(session.token);
+            try{await this.encerrarSessao(id,session.token);}
+            finally{closing.delete(session.token);}
+          }catch(e){onError(id,e);}
+        },e=>onError(id,e));
+      },e=>onError(id,e)));
+    };
+    ids.forEach(add);
+    return {sessions,add,stop(){stopped=true;stops.forEach(stop=>stop());voters.forEach(entry=>entry.stop());stops.clear();voters.clear();}};
+  };
 
   function trululu(){
     try{

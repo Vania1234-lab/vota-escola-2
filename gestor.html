@@ -253,7 +253,8 @@ th{background:#f6f8fa}
     <p class="muted">Analise as propostas e aprove ou rejeite cada candidatura.</p>
     <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:15px 0 20px">
       <div><label for="filtroRelatorio">Candidaturas no relatório</label><select id="filtroRelatorio"><option value="todos">Todas (inclusive pendentes e rejeitadas)</option><option value="aprovado">Somente aprovadas</option><option value="pendente">Somente pendentes</option></select></div>
-      <button id="btnRelatorioCandidatos" class="btn btn-primary" type="button">📄 Gerar lista em PDF</button>
+      <button id="btnRelatorioPorCargo" class="btn btn-primary" type="button">📄 PDF por cargo</button>
+      <button id="btnRelatorioCandidatos" class="btn btn-light" type="button">Lista detalhada com propostas</button>
     </div>
     <div class="grid grid-3" style="margin:16px 0">
       <div class="stat"><span>Aguardando análise</span><strong id="cPendentes">0</strong></div>
@@ -277,11 +278,17 @@ th{background:#f6f8fa}
 
   <section id="ambienteUrnas" class="card ambiente-gestor hidden">
     <div class="ambiente-topo"><h2>🗳️ Controle das urnas</h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
-    <p>Cadastre o identificador da urna (por exemplo, <b>urna-1</b> ou <b>urna-2</b>). Abra <b>urna.html?urna=urna-1</b> no primeiro computador e <b>urna.html?urna=urna-2</b> no segundo.</p>
+    <p>Cadastre o identificador da urna (por exemplo, <b>urna-1</b> ou <b>urna-2</b>). Abra <b>urna.html?urna=urna-1</b>, <b>urna.html?urna=urna-2</b>, <b>urna.html?urna=urna-3</b> e <b>urna.html?urna=urna-4</b>, um endereço diferente em cada computador. Mantenha este painel conectado para acompanhar a conclusão das quatro urnas.</p>
     <div class="grid grid-2"><div><label>Identificador da urna</label><input id="gestorUrnaId" value="urna-1" placeholder="urna-1"></div><div><label>Localizar eleitor por nome ou RA</label><input id="gestorBuscaLiberacao" placeholder="Digite para pesquisar"></div></div>
     <div id="gestorSessaoInfo" class="notice">Consultando urna...</div>
+    <div id="gestorAcaoInfo" class="notice hidden" role="status" aria-live="polite"></div>
+    <div id="gestorConfirmacaoCancelar" class="notice warning hidden">
+      <p id="gestorAvisoCancelar"></p>
+      <button id="gestorConfirmarCancelar" class="btn btn-danger" type="button">Confirmar cancelamento</button>
+      <button id="gestorManterLiberacao" class="btn btn-light" type="button">Manter liberação</button>
+    </div>
     <div id="gestorListaLiberacao"></div>
-    <button id="gestorAtualizarUrna" class="btn btn-light" type="button">Atualizar situação</button> <button id="gestorAtualizarEleitoresUrna" class="btn btn-light" type="button">Atualizar lista de eleitores</button> <button id="gestorCancelarUrna" class="btn btn-danger" type="button" disabled>Cancelar liberação interrompida</button>
+    <button id="gestorAtualizarUrna" class="btn btn-light" type="button">Atualizar situação</button> <button id="gestorAtualizarEleitoresUrna" class="btn btn-light" type="button">Atualizar lista de eleitores</button> <button id="gestorCancelarUrna" class="btn btn-danger" type="button">Cancelar liberação interrompida</button>
   </section>
   <section id="ambienteEleitores" class="card ambiente-gestor hidden">
     <div class="ambiente-topo"><h2>Cadastro de eleitores <span style="font-size:12px;color:#176c39;font-weight:700">VERSÃO COM EDITAR · 27/10</span></h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
@@ -329,7 +336,7 @@ th{background:#f6f8fa}
   <a class="btn btn-light" href="index.html">← Voltar</a>
   </div>
 </main>
-<script src="firebase-config.js"></script><script src="core.js"></script>
+<script src="firebase-config.js"></script><script src="core.js?v=20261102-botoes2"></script>
 <script>
 (async()=>{
  const S=window.VotaEscola?.Store;
@@ -338,13 +345,14 @@ th{background:#f6f8fa}
    document.getElementById("loginGestorMsg").textContent="Falha ao carregar core.js ou firebase-config.js. Verifique se todos os arquivos estão na mesma pasta.";
    return;
  }
- try { await S.init(); } catch(err) {
+ try { await S.init(); S.enableVotingCache(); } catch(err) {
    console.error("Falha de inicialização:",err);
    document.getElementById("loginGestorMsg").className="notice error";
    document.getElementById("loginGestorMsg").textContent="Falha ao conectar ao Firebase: "+(err.message||err);
    return;
  }
 
+ let pararAcompanhamentoUrnas=()=>{};
  if(S.mode==="demo"){
    document.getElementById("loginGestor").classList.add("hidden");
    document.getElementById("appGestor").classList.remove("hidden");
@@ -379,6 +387,7 @@ th{background:#f6f8fa}
  };
 
  firebase.auth().onAuthStateChanged(async user=>{
+   pararAcompanhamentoUrnas();
    if(!user || user.isAnonymous || !user.email){
      document.getElementById("loginGestor").classList.remove("hidden");
      const aviso=document.getElementById("loginGestorMsg");
@@ -585,6 +594,62 @@ th{background:#f6f8fa}
    }catch(err){console.error(err);alert("Falha ao salvar: "+(err?.message||err));}
    finally{saveConfig.disabled=false;}
  };
+
+ // BEGIN RELATORIO POR CARGO
+ function montarListaPorCargo(candidatos,eleicao,cargosConfigurados,filtro){
+   const escapar=v=>String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+   const norm=v=>String(v??"").trim().toLocaleLowerCase("pt-BR");
+   const grupos=new Map();
+   let totalPessoas=0;
+   for(const c of candidatos){
+     const status=norm(c.status||"pendente");
+     if(filtro!=="todos" && status!==filtro)continue;
+     totalPessoas++;
+     const itens=Array.isArray(c.cargos)&&c.cargos.length ? c.cargos : [{cargo:c.cargo||"Cargo não informado",numero:c.numeroEleitoral??c.numero}];
+     const vistos=new Set();
+     for(const item of itens){
+       const nomeCargo=String((typeof item==="string"?item:item?.cargo)||c.cargo||"Cargo não informado").trim();
+       const chave=norm(nomeCargo);
+       if(vistos.has(chave))continue;
+       vistos.add(chave);
+       if(!grupos.has(chave))grupos.set(chave,{nome:nomeCargo,linhas:[]});
+       const numero=typeof item==="object"&&item ? item.numero??c.numeroEleitoral??c.numero : c.numeroEleitoral??c.numero;
+       grupos.get(chave).linhas.push({nome:c.nome||"Sem nome",turma:c.turma||"—",numero:numero==null||numero===""?"—":String(numero).padStart(2,"0"),status});
+     }
+   }
+   const ordem=new Map(cargosConfigurados.map((c,i)=>[norm(c),i]));
+   const lista=[...grupos.values()].sort((a,b)=>(ordem.get(norm(a.nome))??999)-(ordem.get(norm(b.nome))??999)||a.nome.localeCompare(b.nome,"pt-BR"));
+   let inscricoes=0;
+   const secoes=lista.map(g=>{
+     g.linhas.sort((a,b)=>a.numero.localeCompare(b.numero,"pt-BR",{numeric:true})||a.nome.localeCompare(b.nome,"pt-BR"));
+     inscricoes+=g.linhas.length;
+     return `<section class="cargo"><h2>${escapar(g.nome)} <span>${g.linhas.length} candidatura(s)</span></h2><table><thead><tr><th class="numero">Número</th><th>Nome do candidato</th><th class="turma">Turma</th><th class="situacao">Situação</th></tr></thead><tbody>${g.linhas.map(c=>`<tr><td class="numero"><strong>${escapar(c.numero)}</strong></td><td>${escapar(c.nome)}</td><td>${escapar(c.turma)}</td><td>${escapar(c.status)}</td></tr>`).join("")}</tbody></table></section>`;
+   }).join("");
+   const filtroNome={todos:"Todas as candidaturas",aprovado:"Somente aprovadas",pendente:"Somente pendentes",rejeitado:"Somente rejeitadas"}[filtro]||filtro;
+   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Candidatos por cargo — Vota Escola</title><style>
+   @page{size:A4 portrait;margin:15mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#18324b;margin:0;font-size:11pt;line-height:1.35}header{border-bottom:3px solid #174f8f;padding-bottom:10px;margin-bottom:18px}h1{font-size:19pt;margin:0 0 5px;color:#174f8f}.eleicao{font-size:12pt;margin:0 0 8px}.meta{font-size:9pt;color:#42566b}h2{font-size:13pt;background:#edf3f8;padding:8px 10px;margin:18px 0 0;border-left:4px solid #174f8f;break-after:avoid-page;page-break-after:avoid}h2 span{font-size:9pt;font-weight:normal;float:right;padding-top:3px}table{border-collapse:collapse;table-layout:fixed;width:100%;margin-bottom:12px}th,td{border:1px solid #cdd8e3;padding:8px;text-align:left;overflow-wrap:anywhere}th{font-size:9pt;background:#f4f7fa}.numero{width:17%;text-align:center}.turma{width:15%}.situacao{width:20%}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}.aviso{font-size:9pt;color:#42566b;margin-top:18px}.acoes{padding:15px;background:#edf3f8;margin-bottom:20px;text-align:center}.acoes button{padding:11px 18px;background:#174f8f;color:white;border:0;border-radius:6px;font-weight:bold;cursor:pointer}.acoes p{margin:8px 0 0;font-size:10pt}@media print{.acoes{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+   </style></head><body><div class="acoes"><button type="button" onclick="window.print()">Imprimir / Salvar como PDF</button><p>Selecione “Salvar como PDF”, papel A4 e orientação retrato.</p></div><header><h1>${escapar(eleicao.school||"Vota Escola")}</h1><p class="eleicao">${escapar(eleicao.name||"Eleição escolar")} · Candidatos por cargo</p><div class="meta">${escapar(filtroNome)} · ${totalPessoas} candidato(s) · ${inscricoes} candidatura(s) em ${lista.length} cargo(s)<br>Emitido em ${new Date().toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo"})}</div></header>${secoes||"<p>Nenhuma candidatura encontrada para o filtro selecionado.</p>"}<p class="aviso">Quem se candidatou a mais de um cargo aparece no grupo de cada cargo.</p></body></html>`;
+ }
+ // END RELATORIO POR CARGO
+ document.getElementById("btnRelatorioPorCargo").addEventListener("click",async()=>{
+   const botao=document.getElementById("btnRelatorioPorCargo");
+   if(botao.disabled)return;
+   const filtro=document.getElementById("filtroRelatorio").value;
+   const popup=window.open("","_blank");
+   if(!popup){alert("Permita abrir uma nova aba para gerar a lista por cargo.");return;}
+   popup.document.open();popup.document.write('<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Preparando lista</title><p>Carregando candidatos por cargo...</p></html>');popup.document.close();
+   botao.disabled=true;
+   try{
+     S.clearVotingCache?.();
+     const [candidatos,eleicao,cargos]=await Promise.all([S.listCandidaturas(),S.getElection(),S.getCargos()]);
+     const html=montarListaPorCargo(candidatos,eleicao,cargos,filtro);
+     if(popup.closed)throw new Error("A aba da lista foi fechada antes de concluir.");
+     popup.document.open();popup.document.write(html);popup.document.close();
+   }catch(err){
+     if(!popup.closed)popup.close();
+     console.error(err);alert("Não foi possível gerar a lista por cargo: "+(err.message||err));
+   }finally{botao.disabled=false;}
+ });
  // Relatório preparado no navegador com os dados atuais do Firestore.
  document.getElementById("btnRelatorioCandidatos").addEventListener("click", async ()=>{
    const btn=document.getElementById("btnRelatorioCandidatos");
@@ -766,91 +831,188 @@ th{background:#f6f8fa}
 
  let cacheEleitores=[];
  let sessaoGestorAtual=null;
+ let acaoUrnaEmAndamento=false, cancelamentoPendente=null;
+ const acaoInfo=document.getElementById("gestorAcaoInfo");
+ const confirmacaoCancelar=document.getElementById("gestorConfirmacaoCancelar");
+ function mensagemAcao(texto,tipo=""){
+   acaoInfo.className="notice "+tipo;
+   acaoInfo.textContent=texto;
+ }
+ function limparConfirmacaoCancelar(){
+   cancelamentoPendente=null;
+   confirmacaoCancelar.classList.add("hidden");
+ }
+ function erroAcaoUrna(e){
+   const codigo=String(e?.code||"");
+   const detalhe=String(e?.message||e);
+   const motivos={
+     ELEITOR_JA_CONCLUIU:"Este eleitor já concluiu todos os cargos.",
+     ELEITOR_INDISPONIVEL:"Eleitor não encontrado ou inativo.",
+     URNA_OCUPADA:"Esta urna já tem um eleitor liberado. Aguarde a conclusão ou cancele a liberação interrompida.",
+     ELEITOR_EM_OUTRA_URNA:"Este eleitor já está liberado em outra urna.",
+     NENHUM_CARGO_COM_CANDIDATO_APROVADO:"Não há cargos com candidatos aprovados. Confira as candidaturas.",
+     URNA_NAO_OCUPADA:"A urna está livre; não há liberação ativa para cancelar.",
+     SESSAO_ALTERADA:"A liberação mudou. Confira a situação e solicite o cancelamento novamente."
+   };
+   const explicacao=codigo.includes("permission-denied")
+     ? "O Firebase recusou esta ação. Confira se está conectada com o e-mail do gestor autorizado nas regras do projeto."
+     : codigo.includes("resource-exhausted")
+       ? "A cota do Firebase foi atingida. Esta ação não foi confirmada."
+       : codigo.includes("unavailable")
+         ? "Não foi possível alcançar o Firebase. Confira a conexão."
+         : motivos[detalhe]||detalhe;
+   mensagemAcao(explicacao+(codigo?" Código: "+codigo:""),"error");
+   console.error("Ação de urna recusada",e);
+ }
+ function travarAcaoUrna(valor){
+   acaoUrnaEmAndamento=valor;
+   document.getElementById("gestorCancelarUrna").disabled=valor;
+   document.getElementById("gestorConfirmarCancelar").disabled=valor;
+   document.getElementById("gestorManterLiberacao").disabled=valor;
+   renderLiberacao();
+ }
  const urnaIdInput=document.getElementById("gestorUrnaId");
  const buscaLiberacao=document.getElementById("gestorBuscaLiberacao");
  const infoUrna=document.getElementById("gestorSessaoInfo");
  const listaLiberacao=document.getElementById("gestorListaLiberacao");
  function urnaIdValido(){const id=urnaIdInput.value.trim().toLowerCase();return /^[a-z0-9_-]{1,40}$/.test(id)?id:null;}
- let cacheCargosControle=null, cacheCargosControleEm=0;
- async function cargosVotaveisControle(){
-   if(!cacheCargosControle || Date.now()-cacheCargosControleEm>120000){
-     cacheCargosControle=await S.getCargosVotaveis();cacheCargosControleEm=Date.now();
-   }
-   return cacheCargosControle;
+ let monitorUrnas=null;
+ pararAcompanhamentoUrnas=()=>{monitorUrnas?.stop();monitorUrnas=null;};
+ function mostrarSessao(id,session){
+   if(id!==urnaIdValido())return;
+   sessaoGestorAtual=session;
+   document.getElementById("gestorCancelarUrna").disabled=acaoUrnaEmAndamento;
+   if(cancelamentoPendente?.id===id && (session?.token!==cancelamentoPendente.token || session?.status!=="liberada"))limparConfirmacaoCancelar();
+   infoUrna.className="notice "+(session?.status==="liberada"?"warning":"success");
+   infoUrna.textContent=session?.status==="liberada"
+     ? `Urna ${id}: EM VOTAÇÃO — ${cacheEleitores.find(v=>String(v.ra)===session.ra)?.nome||"eleitor autorizado"}. Aguarde concluir.`
+     : `Urna ${id}: LIVRE. ${session?.status==="concluida"?"Votação anterior concluída. Pode liberar o próximo eleitor.":"Aguardando liberação."}`;
+   renderLiberacao();
  }
- let controleUrnaConsultando=false;
+ function iniciarMonitorUrnas(reiniciar=false){
+   if(monitorUrnas && !reiniciar)return;
+   monitorUrnas?.stop();
+   monitorUrnas=S.monitorUrnas(["urna-1","urna-2","urna-3","urna-4"],{
+     onSession:mostrarSessao,
+     onVoter:voter=>{
+       cacheEleitores=cacheEleitores.map(v=>String(v.ra)===String(voter.ra)?{...v,...voter}:v);
+       renderLiberacao();
+     },
+     onError:(id,e)=>{
+       console.error("Monitor da urna",id,e);
+       infoUrna.className="notice error";
+       infoUrna.textContent="Falha ao acompanhar "+id+": "+e.message+". Clique em Atualizar situação para reconectar.";
+     }
+   });
+   const selected=urnaIdValido();if(selected)monitorUrnas.add(selected);
+ }
  async function atualizarControleUrna(){
-   if(controleUrnaConsultando) return;
-   controleUrnaConsultando=true;
-   try { await atualizarControleUrnaInterno(); } finally { controleUrnaConsultando=false; }
- }
- async function atualizarControleUrnaInterno(){
    const id=urnaIdValido();
    if(!id){infoUrna.textContent="Identificador inválido: use letras, números, hífen ou sublinhado.";return;}
-   try{
-     let session=await S.getUrnaSession(id);
-     if(session?.status==="liberada"){
-       const voter=await S.getVoter(session.ra);
-       const cargos=await cargosVotaveisControle();
-       if(voter && cargos.length && cargos.every(c=>(voter.votedCargos||[]).includes(c))){
-         await S.encerrarSessao(id,session.token);
-         session=await S.getUrnaSession(id);
-       }
-     }
-     sessaoGestorAtual=session;
-     document.getElementById("gestorCancelarUrna").disabled=session?.status!=="liberada";
-     infoUrna.className="notice "+(session?.status==="liberada"?"warning":"success");
-     infoUrna.textContent=session?.status==="liberada" ? `Urna ${id}: EM VOTAÇÃO — ${cacheEleitores.find(v=>String(v.ra)===session.ra)?.nome||"eleitor autorizado"}. Aguarde concluir.` : `Urna ${id}: LIVRE. ${session?.status==="concluida"?"Votação anterior concluída. Pode liberar o próximo eleitor.":"Aguardando liberação."}`;
+   iniciarMonitorUrnas();
+   monitorUrnas.add(id);
+   if(monitorUrnas.sessions.has(id))mostrarSessao(id,monitorUrnas.sessions.get(id));
+   else{
+     sessaoGestorAtual=null;
      renderLiberacao();
-   }catch(e){infoUrna.className="notice error";infoUrna.textContent="Falha ao consultar a urna: "+(e.message||e);}
+     infoUrna.textContent="Conectando à urna "+id+"...";
+   }
  }
+ window.addEventListener("pagehide",()=>{monitorUrnas?.stop();monitorUrnas=null;});
+ window.addEventListener("pageshow",event=>{if(event.persisted && !document.getElementById("ambienteUrnas").classList.contains("hidden"))atualizarControleUrna();});
  function renderLiberacao(){
    const termo=buscaLiberacao.value.trim().toLocaleLowerCase("pt-BR");
    const filtrados=cacheEleitores.filter(v=>!termo || [v.nome,v.ra,v.turma].some(x=>String(x||"").toLocaleLowerCase("pt-BR").includes(termo))).slice(0,80);
    listaLiberacao.innerHTML=filtrados.length?`<div style="overflow:auto"><table><thead><tr><th>Eleitor</th><th>Turma</th><th>Situação</th><th>Ação</th></tr></thead><tbody>${filtrados.map(v=>{
      const voted=Array.isArray(v.votedCargos)?v.votedCargos:[];
      const status=v.ativo===false?"Inativo":voted.length?`Participou de ${voted.length} cargo(s)`:"Ainda não votou";
-     const ocupado=sessaoGestorAtual?.status==="liberada";
-     return `<tr><td><b>${esc(v.nome)}</b><br><small>${esc(v.ra)}</small></td><td>${esc(v.turma)}</td><td>${esc(status)}</td><td><button class="btn btn-success" ${ocupado||v.ativo===false?"disabled":""} data-liberar-ra="${esc(v.ra)}">Liberar</button></td></tr>`;
+     const ocupado=acaoUrnaEmAndamento || sessaoGestorAtual?.status==="liberada";
+     return `<tr><td><b>${esc(v.nome)}</b><br><small>${esc(v.ra)}</small></td><td>${esc(v.turma)}</td><td>${esc(status)}</td><td><button type="button" class="btn btn-success" ${ocupado||v.ativo===false?"disabled":""} data-liberar-ra="${esc(v.ra)}">Liberar</button></td></tr>`;
    }).join("")}</tbody></table></div>`:"<p>Nenhum eleitor encontrado.</p>";
-   listaLiberacao.querySelectorAll("[data-liberar-ra]").forEach(b=>b.addEventListener("click",async()=>{
-     const id=urnaIdValido(),ra=b.dataset.liberarRa;
-     if(!id || !confirm(`Liberar o eleitor de RA ${ra} na urna ${id}?`))return;
-     b.disabled=true;
-     try{await S.liberarEleitor(id,ra);await atualizarControleUrna();}
-     catch(e){alert("Não foi possível liberar: "+(e.message||e));await atualizarControleUrna();}
-   }));
  }
+ // Delegação mantém o clique ativo mesmo quando o acompanhamento redesenha a lista.
+ listaLiberacao.addEventListener("click",async event=>{
+   const botao=event.target.closest("button[data-liberar-ra]");
+   if(!botao || botao.disabled || acaoUrnaEmAndamento)return;
+   const id=urnaIdValido(),ra=botao.dataset.liberarRa;
+   if(!id){mensagemAcao("Informe um identificador válido para a urna.","error");return;}
+   limparConfirmacaoCancelar();
+   travarAcaoUrna(true);
+   mensagemAcao("Liberando eleitor na "+id+"...");
+   try{
+     // A própria transação decide se a urna e o eleitor estão disponíveis.
+     const session=await S.liberarEleitor(id,ra);
+     if(monitorUrnas)monitorUrnas.sessions.set(id,session);
+     mostrarSessao(id,session);
+     mensagemAcao("Eleitor liberado na "+id+". Aguarde o voto e a tela FIM.","success");
+   }catch(e){erroAcaoUrna(e);}
+   finally{travarAcaoUrna(false);}
+ });
  buscaLiberacao.addEventListener("input",renderLiberacao);
- urnaIdInput.addEventListener("change",atualizarControleUrna);
- document.getElementById("gestorAtualizarUrna").onclick=atualizarControleUrna;
+ urnaIdInput.addEventListener("change",()=>{
+   limparConfirmacaoCancelar();
+   sessaoGestorAtual=null;
+   atualizarControleUrna().catch(erroAcaoUrna);
+ });
+ document.getElementById("gestorAtualizarUrna").onclick=()=>{iniciarMonitorUrnas(true);atualizarControleUrna();};
  document.getElementById("gestorCancelarUrna").onclick=async()=>{
+   if(acaoUrnaEmAndamento)return;
    const id=urnaIdValido();
-   if(!id || sessaoGestorAtual?.status!=="liberada") return;
-   if(!confirm("ATENÇÃO: confirme que ninguém está votando na "+id+". Cancelar a liberação interrompe a sessão, mas NÃO apaga votos já confirmados. Continuar?"))return;
-   try{await S.cancelarSessao(id);await atualizarControleUrna();}
-   catch(e){alert("Não foi possível cancelar: "+(e.message||e));}
+   if(!id){mensagemAcao("Informe um identificador válido para a urna.","error");return;}
+   travarAcaoUrna(true);
+   mensagemAcao("Verificando a liberação atual da "+id+"...");
+   try{
+     const session=await S.getUrnaSession(id);
+     if(monitorUrnas)monitorUrnas.sessions.set(id,session);
+     mostrarSessao(id,session);
+     if(session?.status!=="liberada"){
+       limparConfirmacaoCancelar();
+       mensagemAcao("A "+id+" está livre. Não há liberação ativa para cancelar.");
+       return;
+     }
+     cancelamentoPendente={id,token:session.token};
+     document.getElementById("gestorAvisoCancelar").textContent="Confirme que ninguém está votando na "+id+". O cancelamento interrompe apenas esta liberação e preserva os votos já registrados.";
+     confirmacaoCancelar.classList.remove("hidden");
+     mensagemAcao("Confira o aviso e clique em Confirmar cancelamento.");
+   }catch(e){erroAcaoUrna(e);}
+   finally{travarAcaoUrna(false);}
  };
- // Consultar a sessão custa apenas um documento; não recarregar a coleção inteira a cada 3 segundos.
+ document.getElementById("gestorManterLiberacao").onclick=()=>{
+   limparConfirmacaoCancelar();
+   mensagemAcao("Liberação mantida.");
+ };
+ document.getElementById("gestorConfirmarCancelar").onclick=async()=>{
+   if(acaoUrnaEmAndamento || !cancelamentoPendente)return;
+   const pending={...cancelamentoPendente};
+   travarAcaoUrna(true);
+   mensagemAcao("Cancelando a liberação da "+pending.id+"...");
+   try{
+     // Token impede que um aviso antigo cancele a sessão de um novo eleitor.
+     await S.cancelarSessao(pending.id,pending.token);
+     limparConfirmacaoCancelar();
+     const session=await S.getUrnaSession(pending.id);
+     if(monitorUrnas)monitorUrnas.sessions.set(pending.id,session);
+     mostrarSessao(pending.id,session);
+     mensagemAcao("Liberação cancelada na "+pending.id+". Os votos já registrados foram mantidos.","success");
+   }catch(e){limparConfirmacaoCancelar();erroAcaoUrna(e);}
+   finally{travarAcaoUrna(false);}
+ };
+ // Lista completa apenas ao entrar (no máximo a cada dois minutos) ou por ação manual.
  let ultimaListaEleitoresUrna=0, carregandoListaEleitoresUrna=false;
  async function atualizarListaEleitoresUrna(force=false){
    if(carregandoListaEleitoresUrna || (!force && Date.now()-ultimaListaEleitoresUrna<120000)) return;
    carregandoListaEleitoresUrna=true;
    try { cacheEleitores=await S.listVoters(); ultimaListaEleitoresUrna=Date.now(); renderLiberacao(); }
-   catch(e){console.error("Falha ao atualizar eleitores:",e);}
+   catch(e){erroAcaoUrna(e);}
    finally{carregandoListaEleitoresUrna=false;}
  }
- // Apenas o documento da urna é consultado periodicamente. A lista completa de eleitores
+ // As sessões são acompanhadas em tempo real. A lista completa de eleitores
  // só é lida ao abrir a área ou quando o gestor solicita atualização manual.
  document.getElementById("gestorAtualizarEleitoresUrna").onclick=()=>atualizarListaEleitoresUrna(true);
- setInterval(()=>{
-   if(document.hidden || document.getElementById("ambienteUrnas").classList.contains("hidden"))return;
-   atualizarControleUrna().catch(console.error);
- },8000);
  const abrirAmbienteGestorAnterior=window.abrirAmbienteGestor;
  window.abrirAmbienteGestor=(id)=>{
    abrirAmbienteGestorAnterior(id);
-   if(id==="ambienteUrnas") { atualizarListaEleitoresUrna(true); atualizarControleUrna().catch(console.error); }
+   if(id==="ambienteUrnas") { atualizarListaEleitoresUrna(); atualizarControleUrna().catch(console.error); }
  };
 
 

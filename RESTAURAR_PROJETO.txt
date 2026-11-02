@@ -1,0 +1,30 @@
+VOTA ESCOLA COMPLETO — 4 URNAS
+Inclui todas as páginas, core.js atualizado, styles.css, elegante.css,
+configuração Firebase e demais arquivos recuperados do ZIP original.
+
+Extraia TODOS os arquivos na mesma pasta, mantendo os nomes.
+Restaure os arquivos no local em que o site já estava hospedado.
+Abra index.html pelo endereço do site.
+
+ATENÇÃO AO BANCO
+O firebase-config.js incluído foi recuperado do ZIP original e aponta para:
+vota-escola-2
+Se seu site passou a usar vota-3 ou outro projeto, recupere a configuração
+correspondente antes de publicar; esta cópia não confirma qual banco está
+atualmente em uso. Não é preciso importar eleitores ou votos para restaurar
+os arquivos de um site que continua conectado ao mesmo banco.
+
+A restauração dos arquivos não restaura coleções apagadas do Firebase.
+Não apague o banco, não execute importações e não substitua regras publicadas
+apenas para restaurar a pasta do site.
+
+As candidaturas de importação são arquivos históricos recuperados da base.
+Não execute importar-candidaturas.html para esta restauração.
+
+Abra uma urna diferente em cada computador:
+urna.html?urna=urna-1
+urna.html?urna=urna-2
+urna.html?urna=urna-3
+urna.html?urna=urna-4
+
+Consulte ATUALIZACAO_4_URNAS.txt e VALIDACAO_4_URNAS.txt.
