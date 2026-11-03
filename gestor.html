@@ -277,7 +277,7 @@ th{background:#f6f8fa}
   </section>
 
   <section id="ambienteUrnas" class="card ambiente-gestor hidden">
-    <div class="ambiente-topo"><h2>🗳️ Controle das urnas</h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
+    <div class="ambiente-topo"><h2>🗳️ Controle das urnas <small style="display:block;font-size:12px;font-weight:normal">Versão 03/11 · lista econômica</small></h2><button class="btn btn-voltar-painel" onclick="voltarPainelGestor()">← Voltar ao painel</button></div>
     <p>Cadastre o identificador da urna (por exemplo, <b>urna-1</b> ou <b>urna-2</b>). Abra <b>urna.html?urna=urna-1</b>, <b>urna.html?urna=urna-2</b>, <b>urna.html?urna=urna-3</b> e <b>urna.html?urna=urna-4</b>, um endereço diferente em cada computador. Mantenha este painel conectado para acompanhar a conclusão das quatro urnas.</p>
     <div class="grid grid-2"><div><label>Identificador da urna</label><input id="gestorUrnaId" value="urna-1" placeholder="urna-1"></div><div><label>Localizar eleitor por nome ou RA</label><input id="gestorBuscaLiberacao" placeholder="Digite para pesquisar"></div></div>
     <div id="gestorSessaoInfo" class="notice">Consultando urna...</div>
@@ -677,7 +677,7 @@ th{background:#f6f8fa}
    finally{btn.disabled=false;}
  });
  async function refresh(){
-   const cs=await S.listCandidaturas(), voters=await S.listVoters();
+   const cs=await S.listCandidaturas(), voters=await carregarEleitoresDoPainel();
    const cargosDisponiveis=await S.getCargos();
    sCand.textContent=cs.length;
    sApr.textContent=cs.filter(x=>x.status==="aprovado").length;
@@ -830,6 +830,27 @@ th{background:#f6f8fa}
  }
 
  let cacheEleitores=[];
+ let eleitoresCarregados=false, leituraEleitoresPendente=null;
+ const alteracoesDuranteLeitura=new Map();
+ function atualizarContadoresEleitores(){
+   document.getElementById("sEleitores").textContent=cacheEleitores.length;
+   document.getElementById("sVot").textContent=cacheEleitores.filter(v=>Array.isArray(v.votedCargos)&&v.votedCargos.length>0).length;
+ }
+ async function carregarEleitoresDoPainel(force=false){
+   if(leituraEleitoresPendente)return leituraEleitoresPendente;
+   if(!force && eleitoresCarregados)return cacheEleitores;
+   alteracoesDuranteLeitura.clear();
+   leituraEleitoresPendente=(async()=>{
+     try{
+       const lista=await S.listVoters();
+       cacheEleitores=lista.map(v=>({...v,...alteracoesDuranteLeitura.get(String(v.ra||v.id))}));
+       eleitoresCarregados=true;
+       atualizarContadoresEleitores();
+       return cacheEleitores;
+     }finally{leituraEleitoresPendente=null;alteracoesDuranteLeitura.clear();}
+   })();
+   return leituraEleitoresPendente;
+ }
  let sessaoGestorAtual=null;
  let acaoUrnaEmAndamento=false, cancelamentoPendente=null;
  const acaoInfo=document.getElementById("gestorAcaoInfo");
@@ -895,7 +916,9 @@ th{background:#f6f8fa}
    monitorUrnas=S.monitorUrnas(["urna-1","urna-2","urna-3","urna-4"],{
      onSession:mostrarSessao,
      onVoter:voter=>{
+       if(leituraEleitoresPendente)alteracoesDuranteLeitura.set(String(voter.ra),voter);
        cacheEleitores=cacheEleitores.map(v=>String(v.ra)===String(voter.ra)?{...v,...voter}:v);
+       atualizarContadoresEleitores();
        renderLiberacao();
      },
      onError:(id,e)=>{
@@ -997,17 +1020,20 @@ th{background:#f6f8fa}
    }catch(e){limparConfirmacaoCancelar();erroAcaoUrna(e);}
    finally{travarAcaoUrna(false);}
  };
- // Lista completa apenas ao entrar (no máximo a cada dois minutos) ou por ação manual.
- let ultimaListaEleitoresUrna=0, carregandoListaEleitoresUrna=false;
+ // Uma carga de eleitores por painel. Navegação e filtros reutilizam a lista.
+ // Atualizações dos eleitores nas urnas chegam por documento, pelo monitor.
  async function atualizarListaEleitoresUrna(force=false){
-   if(carregandoListaEleitoresUrna || (!force && Date.now()-ultimaListaEleitoresUrna<120000)) return;
-   carregandoListaEleitoresUrna=true;
-   try { cacheEleitores=await S.listVoters(); ultimaListaEleitoresUrna=Date.now(); renderLiberacao(); }
-   catch(e){erroAcaoUrna(e);}
-   finally{carregandoListaEleitoresUrna=false;}
+   const botao=document.getElementById("gestorAtualizarEleitoresUrna");
+   if(botao.disabled)return;
+   botao.disabled=true;
+   try{
+     await carregarEleitoresDoPainel(force);
+     renderEleitores(cacheEleitores);
+     renderLiberacao();
+     if(force)mensagemAcao("Lista atualizada: "+cacheEleitores.length+" eleitores.","success");
+   }catch(e){erroAcaoUrna(e);}
+   finally{botao.disabled=false;}
  }
- // As sessões são acompanhadas em tempo real. A lista completa de eleitores
- // só é lida ao abrir a área ou quando o gestor solicita atualização manual.
  document.getElementById("gestorAtualizarEleitoresUrna").onclick=()=>atualizarListaEleitoresUrna(true);
  const abrirAmbienteGestorAnterior=window.abrirAmbienteGestor;
  window.abrirAmbienteGestor=(id)=>{
@@ -1095,6 +1121,7 @@ th{background:#f6f8fa}
 
    try{
      await S.addVoter({ra,nome,turma,ativo:true});
+     eleitoresCarregados=false;
      document.getElementById("eleitorRA").value="";
      document.getElementById("eleitorNome").value="";
      document.getElementById("eleitorTurma").value="";
@@ -1110,6 +1137,7 @@ th{background:#f6f8fa}
    if(!confirm(`Excluir o eleitor de RA ${ra}?`)) return;
    try{
      await S.deleteVoter(ra);
+     eleitoresCarregados=false;
      await refresh();
    }catch(err){
      alert("Não foi possível excluir o eleitor.");
@@ -1164,6 +1192,7 @@ th{background:#f6f8fa}
 
      if(!itens.length) throw new Error("Nenhum eleitor válido foi encontrado.");
      await S.addVoters(itens);
+     eleitoresCarregados=false;
      document.getElementById("csvEleitores").value="";
      eleitorMsg(`${itens.length} eleitor(es) importado(s) com sucesso.`,true);
      await refresh();

@@ -1,0 +1,25 @@
+{
+  "baseline": {
+    "version": "publicada",
+    "voters": 330,
+    "candidateFilterActions": 25,
+    "controlNavigationActions": 20,
+    "rosterQueriesAfterNavigation": 46,
+    "documentReadsAfterNavigation": 15180,
+    "explicitRefresh": "PASS",
+    "registrationAndDeletion": "PASS",
+    "monitorCounters": "not asserted"
+  },
+  "fixed": {
+    "version": "revisada",
+    "voters": 330,
+    "candidateFilterActions": 25,
+    "controlNavigationActions": 20,
+    "rosterQueriesAfterNavigation": 1,
+    "documentReadsAfterNavigation": 330,
+    "explicitRefresh": "PASS",
+    "registrationAndDeletion": "PASS",
+    "monitorCounters": "PASS"
+  },
+  "scope": "Full gestor inline script executed with simulated DOM and Store; no Firebase connection, no real voter data, no browser rendering."
+}

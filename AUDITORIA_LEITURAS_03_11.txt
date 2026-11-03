@@ -1,0 +1,65 @@
+AUDITORIA DE LEITURAS — 03/11/2026
+
+SITE VERIFICADO
+https://vania1234-lab.github.io/vota-escola-2/
+Os arquivos públicos index.html, gestor.html, urna.html, core.js,
+firebase-config.js e resultados.html foram baixados para comparação, sem
+executar consultas ao Firestore, autenticar ou registrar votos.
+Os seis arquivos coincidem com o pacote entregue antes desta correção.
+O banco configurado é vota-escola-2.
+Não há setInterval em gestor.html, urna.html ou core.js publicados.
+
+PROBLEMA CONFIRMADO NO CÓDIGO PUBLICADO
+refresh() busca a coleção inteira de eleitores inclusive ao alterar filtros
+ou aprovar/editar candidaturas.
+A entrada na área das urnas busca essa coleção novamente se a última
+carga específica dessa área tiver mais de 120 segundos, mesmo que o painel
+já tenha carregado os eleitores na inicialização.
+
+Isso permite acumular muitas leituras sem muitos votos. É uma fonte
+comprovada de desperdício, mas não comprova que causou exatamente o pico
+de 9,1 mil leituras: não há acesso aos registros privados de uso do projeto.
+
+CORREÇÃO
+Apenas gestor.html mudou.
+A lista inteira é carregada uma vez por inicialização do painel.
+Filtros de candidatos e navegação reutilizam a lista em memória.
+O monitor continua atualizando a participação de cada eleitor por documento.
+Atualização manual, cadastro, exclusão e importação continuam podendo
+buscar novamente a lista. Dados alterados em outro computador podem ser
+obtidos pelo botão Atualizar lista de eleitores.
+Não foram modificados core.js, urna.html, firebase-config.js ou regras.
+As validações de voto continuam consultando dados atuais nas transações.
+
+INSTALAR COM AS URNAS LIVRES
+1. Guarde uma cópia do gestor.html atual.
+2. Substitua APENAS gestor.html no GitHub pelo arquivo deste pacote.
+3. Aguarde a publicação do GitHub Pages.
+4. Recarregue o painel com Ctrl+Shift+R antes de liberar o próximo eleitor.
+5. No Controle das urnas deve aparecer:
+   Versão 03/11 · lista econômica
+6. Mantenha uma única aba de gestor para operar as duas urnas.
+Não recarregue urnas em votação. Não reimporte cadastros nem altere o banco.
+
+Não basta baixar este ZIP: a correção precisa ser publicada no site.
+Nesta auditoria, nenhuma alteração foi enviada ao GitHub ou ao Firebase.
+
+VALIDAÇÃO
+O script JavaScript completo do painel foi executado com DOM e Store
+simulados, primeiro na versão publicada e depois na revisada.
+Cenário sintético: 330 eleitores, 25 mudanças de filtro e 20 entradas na
+área de urnas separadas por mais de dois minutos simulados.
+- Publicada: 46 consultas completas; 15.180 documentos de eleitores.
+- Revisada: 1 consulta completa; 330 documentos de eleitores.
+Também passaram: atualização manual, recarga após cadastro e exclusão,
+e contadores atualizados pelo monitor individual dos eleitores.
+A sintaxe de todas as páginas foi verificada.
+
+LIMITES
+O ensaio não é uma medição de faturamento, não inclui regras do Firestore,
+reconexões ou outros acessos e não foi executado em navegador gráfico.
+Um navegador de teste não pôde ser instalado neste ambiente.
+Não foram acessados dados reais de eleitores ou votos.
+O ensaio anterior de 300 eleitores não foi repetido: nenhuma transação,
+validação ou gravação de votos foi alterada nesta correção.
+A cota já gasta não é recuperada com esta atualização.
