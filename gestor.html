@@ -317,6 +317,18 @@ th{background:#f6f8fa}
         <input id="buscaEleitor" placeholder="Digite nome, RA ou turma">
       </div>
     </div>
+    <div class="card" style="margin-top:16px;background:#f8fbff">
+      <h3>Relatório de estudantes que ainda não votaram</h3>
+      <p class="small muted">Consulta somente leitura. Exclui eleitores inativos e considera pendente quem ainda não possui nenhum cargo registrado em votedCargos. Atualize antes de gerar.</p>
+      <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+        <div><label for="filtroTurmaPendentes">Turma</label><select id="filtroTurmaPendentes"><option value="">Todas as turmas</option></select></div>
+        <button type="button" class="btn btn-light" id="atualizarPendentes">Atualizar dados</button>
+        <button type="button" class="btn btn-primary" id="gerarPendentes">Gerar relatório</button>
+        <button type="button" class="btn btn-light" id="imprimirPendentes">Imprimir</button>
+        <button type="button" class="btn btn-light" id="csvPendentes">Exportar CSV</button>
+      </div>
+      <div id="relatorioPendentes" style="margin-top:14px" aria-live="polite">Clique em Gerar relatório.</div>
+    </div>
     <div id="eleitoresList" style="margin-top:14px"></div>
     <div id="edicaoEleitor" class="card hidden" style="margin-top:16px;border:2px solid #2e6ab3;background:#f1f7ff">
       <h3>Editar dados do estudante</h3>
@@ -1073,6 +1085,47 @@ th{background:#f6f8fa}
        </table>
      </div>`;
  }
+
+ // Relatório somente leitura, baseado no mesmo cadastro exibido no painel.
+ let pendentesRelatorio=[];
+ function selecionarPendentes(){
+   const turma=document.getElementById('filtroTurmaPendentes').value;
+   return cacheEleitores.filter(v=>v.ativo!==false && (!turma || String(v.turma||'')===turma) &&
+     !(Array.isArray(v.votedCargos)&&v.votedCargos.length) && v.votou!==true && v.jaVotou!==true)
+     .sort((a,b)=>String(a.turma||'').localeCompare(String(b.turma||''),'pt-BR')||String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));
+ }
+ function preencherTurmasPendentes(){
+   const select=document.getElementById('filtroTurmaPendentes');const anterior=select.value;
+   const turmas=[...new Set(cacheEleitores.filter(v=>v.ativo!==false).map(v=>String(v.turma||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+   select.innerHTML='<option value="">Todas as turmas</option>'+turmas.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+   if(turmas.includes(anterior))select.value=anterior;
+ }
+ async function gerarRelatorioPendentes(forcar=false){
+   const destino=document.getElementById('relatorioPendentes');
+   try{
+     destino.textContent='Carregando eleitores...';
+     await carregarEleitoresDoPainel(forcar);preencherTurmasPendentes();
+     pendentesRelatorio=selecionarPendentes();
+     const data=new Date().toLocaleString('pt-BR');
+     destino.innerHTML=`<p><strong>${pendentesRelatorio.length} estudante(s) pendente(s)</strong> — Gerado em ${esc(data)}</p>`+
+       (pendentesRelatorio.length?`<div style="overflow:auto"><table><thead><tr><th>Nome</th><th>RA</th><th>Turma</th><th>Situação</th></tr></thead><tbody>${pendentesRelatorio.map(v=>`<tr><td>${esc(v.nome||'')}</td><td>${esc(v.ra||v.id||'')}</td><td>${esc(v.turma||'')}</td><td>Não votou</td></tr>`).join('')}</tbody></table></div>`:'<p>Nenhum estudante pendente neste filtro.</p>');
+   }catch(e){destino.textContent='Erro ao gerar relatório: '+(e?.message||e);}
+ }
+ document.getElementById('gerarPendentes').onclick=()=>gerarRelatorioPendentes();
+ document.getElementById('atualizarPendentes').onclick=()=>gerarRelatorioPendentes(true);
+ document.getElementById('filtroTurmaPendentes').onchange=()=>gerarRelatorioPendentes();
+ document.getElementById('csvPendentes').onclick=()=>{
+   if(!pendentesRelatorio.length){alert('Gere o relatório primeiro ou não há pendentes.');return;}
+   const cell=x=>'"'+String(x??'').replaceAll('"','""')+'"';
+   const csv='\uFEFF'+[['Nome','RA','Turma','Situação'],...pendentesRelatorio.map(v=>[v.nome||'',v.ra||v.id||'',v.turma||'','Não votou'])].map(r=>r.map(cell).join(';')).join('\r\n');
+   const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='vota-escola-2-nao-votaram.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ };
+ document.getElementById('imprimirPendentes').onclick=()=>{
+   if(!pendentesRelatorio.length){alert('Gere o relatório primeiro ou não há pendentes.');return;}
+   const rows=pendentesRelatorio.map(v=>`<tr><td>${esc(v.nome||'')}</td><td>${esc(v.ra||v.id||'')}</td><td>${esc(v.turma||'')}</td></tr>`).join('');
+   const w=window.open('','_blank');if(!w){alert('Permita janelas pop-up para imprimir.');return;}
+   w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Eleitores pendentes</title><style>body{font:12px Arial;margin:22px}h1{font-size:20px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #bbb;padding:6px;text-align:left}thead{display:table-header-group}</style></head><body><h1>Vota Escola 2 — Estudantes que ainda não votaram</h1><p>Total: '+pendentesRelatorio.length+' | '+new Date().toLocaleString('pt-BR')+'</p><table><thead><tr><th>Nome</th><th>RA</th><th>Turma</th></tr></thead><tbody>'+rows+'</tbody></table></body></html>');w.document.close();w.focus();w.print();
+ };
 
  // Delegação de clique evita inserir RA em JavaScript executável.
  document.getElementById("eleitoresList").addEventListener("click",event=>{
