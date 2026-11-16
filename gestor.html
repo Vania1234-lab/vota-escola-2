@@ -1133,14 +1133,51 @@ th{background:#f6f8fa}
    }
  };
 
+ // Exclusão controlada: consulta o documento atual e impede remoção de quem votou.
  window.excluirEleitor=async(ra)=>{
-   if(!confirm(`Excluir o eleitor de RA ${ra}?`)) return;
+   ra=String(ra||"").trim();
+   const eleitor=cacheEleitores.find(v=>String(v.ra||v.id||"")===ra);
+   if(!eleitor)return alert("Eleitor não encontrado. Atualize a lista.");
+   if(Array.isArray(eleitor.votedCargos)&&eleitor.votedCargos.length)
+     return alert("Este eleitor já votou e não pode ser excluído.");
+   if(!confirm(`Excluir definitivamente ${eleitor.nome||"este eleitor"} (RA ${ra})? Essa ação não pode ser desfeita.`))return;
    try{
-     await S.deleteVoter(ra);
+     if(S.mode!=="firebase"){
+       if(typeof S.deleteVoter!=="function")throw new Error("Exclusão indisponível neste modo.");
+       await S.deleteVoter(ra);
+     }else{
+       const db=firebase.firestore();
+       const col=db.collection("eleitores");
+       // O identificador pode ser o RA ou um ID automático criado na importação.
+       const [porId,porRa]=await Promise.all([col.doc(ra).get(),col.where("ra","==",ra).get()]);
+       const docs=new Map();
+       if(porId.exists)docs.set(porId.id,porId.ref);
+       porRa.forEach(d=>docs.set(d.id,d.ref));
+       if(!docs.size)throw new Error("Registro não encontrado no Firestore.");
+       // Transação revalida os registros antes de excluí-los.
+       await db.runTransaction(async tx=>{
+         const snapshots=[];
+         for(const ref of docs.values())snapshots.push(await tx.get(ref));
+         for(const snap of snapshots){
+           if(!snap.exists)continue;
+           const v=snap.data()||{};
+           if(String(v.ra||snap.id)!==ra)throw new Error("Identificação divergente. Exclusão cancelada.");
+           if((Array.isArray(v.votedCargos)&&v.votedCargos.length)||v.votou===true||v.jaVotou===true)
+             throw new Error("O eleitor já possui participação registrada. Exclusão bloqueada.");
+         }
+         for(const snap of snapshots)if(snap.exists)tx.delete(snap.ref);
+       });
+     }
+     cacheEleitores=cacheEleitores.filter(v=>String(v.ra||v.id||"")!==ra);
      eleitoresCarregados=false;
-     await refresh();
+     renderEleitores(cacheEleitores);
+     atualizarContadoresEleitores();
+     renderLiberacao();
+     eleitorMsg("Eleitor excluído com sucesso. Os demais registros foram preservados.",true);
    }catch(err){
-     alert("Não foi possível excluir o eleitor.");
+     console.error("Falha ao excluir eleitor:",err);
+     eleitorMsg("Não foi possível excluir: "+(err.message||err),false);
+     alert("Não foi possível excluir o eleitor: "+(err.message||err));
    }
  };
 
